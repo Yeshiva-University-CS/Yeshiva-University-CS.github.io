@@ -1,0 +1,190 @@
+body {
+  margin: 0px;
+}
+
+header {
+  margin-bottom: 30px;
+}
+
+nav {
+  padding: 0px;
+  margin: 0px;
+  background-color: #0076b3;
+  /* height: 70px; */
+}
+
+nav > ul {
+  margin: auto;
+  text-align: center;
+  font-size: 1.2em;
+  /* padding: 8px; */
+  display: flex;
+
+}
+
+nav > ul > li {
+  display: inline;
+    /* padding: 9px; */
+    margin:0;
+}
+
+nav > ul > li > a {
+  text-decoration: none;
+  color: white;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 9px;
+}
+
+nav > ul > li:hover {
+  background-color: rgb(78, 172, 255);
+}
+
+nav > ul > li > a:hover {
+  color: white;
+}
+
+nav > ul > .selected {
+  background-color: rgb(78, 172, 255);
+}
+
+#navbar {
+  padding-left: 120px;
+
+}
+
+.sticky {
+  position: fixed;
+  padding-left: 120px;  
+  top: 0;
+  width: 100%;
+  z-index: 20;
+}
+
+#title {
+  width: 100%;
+  /* margin: 30px; */
+  background: rgb(207, 218, 226);
+  padding-top: 30px;
+  padding-bottom: 30px;
+}
+
+#title > #logo {
+  display: inline;
+  float: left;
+  margin: 10px;
+}
+
+
+
+main {
+  font-size: 1.2em;
+}
+
+.team {
+  margin: 30px;
+  padding-top: 100px;
+    margin-top: -100px;
+}
+.team > h1 {
+  font-size: 2em;
+}
+.team > h2 {
+  font-size: 1.3em;
+}
+.team > h3 {
+  font-size: 1em;
+}
+.team > p {
+  width: 70%;
+  float: left;
+}
+
+.content {
+  padding: 0 30px 0 30px;
+  /* margin: 0 0 60px 0; */
+  margin-bottom: 60px;
+}
+
+.card {
+  z-index: 1;
+  /* float:left; */
+  text-align: center;
+}
+
+.card-anchor {
+  width: 100; 
+  display: block;
+  text-decoration: none;
+  color: black;
+}
+
+.card-text {
+  font-size: 0.8em;
+  
+}
+
+.card-link {
+  font-size: 0.9em;
+}
+
+.row {
+  margin-top: 12px;
+  margin-bottom: 12px;
+
+}
+
+.vid-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+}
+
+iframe {
+  position: absolute;
+}
+
+
+footer {
+  width: 100%;
+  height: 150px;
+  background: #0d2959;
+  padding-top: 30px;
+  padding-bottom: 30px;
+  color: white;
+
+  
+}
+
+
+footer > .container > #info {
+  width: 30%;
+  float: left;
+}
+
+footer > .container > #info > h1 {
+  font-size: 1.2em;
+  text-align: left;
+}
+footer > .container > #info > p {
+  font-size: 1em;
+  text-align: left;
+}
+
+footer > .container > #links {
+  width: 30%;
+  float:right;
+}
+
+footer > .container #links > ul > li > a {
+  text-decoration: none;
+  color: lightblue;
+}
+
+footer > .container #links > ul {
+  
+  list-style: none;
+}
+
