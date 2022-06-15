@@ -65,14 +65,24 @@ footer {
     }
 }
 
+@keyframes animatedBackground {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: -100% 0;
+    }
+}
+
 #header {
     text-align: center;
     margin-top: 3.125rem;
     background: #05172d;
     padding: 10rem 0 13rem;
     color: #fff;
-    background-image: url(/assets/img/banner-background.png);
-    background-size: contain;
+    background-image: url(/assets/img/stardust-bg.png);
+    animation: animatedBackground 100s linear infinite;
 }
 
 #header h1,
@@ -112,6 +122,33 @@ footer {
     font-weight: bold;
     font-size: 1.4rem;
     margin-top: 3.75rem;
+}
+
+#header .actionbtn-out {
+    margin: 0;
+}
+
+#header .actionbtn {
+    margin-top: 7rem;
+    color: #fff;
+    background: #05172d;
+    border: 2px solid #fff;
+}
+
+#header .actionbtn:hover,
+#header .actionbtn:focus {
+    color: #05172d;
+    background: #fff;
+}
+
+.actionbtn {
+    font-size: 1.5rem;
+}
+
+@media only screen and (max-width: 750px) {
+    .actionbtn {
+        font-size: 1.25rem;
+    }
 }
 
 @media only screen and (max-width: 1899px) {

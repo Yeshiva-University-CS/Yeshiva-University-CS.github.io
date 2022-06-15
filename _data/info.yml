@@ -1,0 +1,10 @@
+about: >-
+  The computer science program at Yeshiva College provides students with the theoretical foundations and practical skills required for long term success in industry and in graduate school.
+links-intro: >-
+  See results and read feedback from students:
+links:
+  - name: 2019-2020 annual report
+    link: https://www.yu.edu/sites/default/files/inline-files/YC-CS-2019-2020-Report_0.pdf
+  - name: 2018-2019 annual report
+    link: https://www.yu.edu/sites/default/files/inline-files/YC-CS-2019.pdf
+apply: "https://yu.elluciancrmrecruit.com/Apply/Account/Login?ReturnUrl=/Apply/"

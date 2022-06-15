@@ -1,4 +1,6 @@
-remote_theme: daattali/beautiful-jekyll@5.0.0
+theme: beautiful-jekyll-theme
+
+# remote_theme: daattali/beautiful-jekyll@5.0.0
 
 title: Computer Science | Yeshiva University
 author: Yeshiva University
@@ -13,21 +15,26 @@ github_username:  jekyll
 # Build settings
 plugins:
   - jekyll-feed
-  - jekyll-remote-theme
+  # - jekyll-remote-theme
 
 
 # --- List of links in the navigation bar --- #
 navbar-links:
-  About Me: "aboutme"
+  About: "about"
+  Program Information: "/program"
+  FAQs: "/faqs"
+  Contact Us: "/contact"
   Resources:
     - YU Home: "https://www.yu.edu/yeshiva-college/ug/computer-science"
-  Contact Us: "/contact"
+    - Apply Now: "https://yu.elluciancrmrecruit.com/Apply/Account/Login?ReturnUrl=/Apply/"
 
 # --- Logo --- #
 
 # Image to show in the navigation bar - works best with a square image
 # Remove this parameter if you don't want an image in the navbar
 avatar: "/assets/img/favicon.ico"
+site-css: "/assets/css/yu.css"
+
 # navbar-img: "/assets/img/banner-background.png"
 # navbar-text-col: "#ffffff"
 navbar-col: "#ffffff"

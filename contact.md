@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Contact Us
-share-title: YU CS | Contact Us
+share-title: YU Computer Science | Contact Us
 ---
 
 <!-- <script src="https://www.google.com/recaptcha/api.js" async defer></script>

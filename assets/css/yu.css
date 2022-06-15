@@ -1,0 +1,197 @@
+--- layout: null ---
+/* Assume 1rem=16px */
+
+p a {
+  text-decoration: underline;
+}
+
+.footer-custom-content p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+footer a {
+  color: #404040;
+  text-decoration: none;
+}
+
+.navbar-custom .navbar-brand-logo img,
+.navbar-custom.top-nav-short .navbar-brand-logo img,
+.navbar-custom.top-nav-short-permanent .navbar-brand-logo img {
+  height: 1.2rem;
+}
+
+/* Subscription section */
+
+#mailchimp-subscribe-section-footer {
+  border-top: 0 none;
+  width: 50%;
+  margin: 0.9375rem auto 0;
+  padding-top: 0.625rem;
+  font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  text-align: center;
+}
+
+.mailchimp-subscribe-section .container {
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.mailchimp-subscribe-section .container .row {
+  padding: 0;
+  margin: 0;
+}
+
+.mailchimp-subscribe-section .container .row .col-xs-12,
+.mailchimp-subscribe-section .container .row .col-sm-8,
+.mailchimp-subscribe-section .container .row .col-sm-4 {
+  margin: 0;
+  padding: 0 0.125rem;
+}
+
+#mailchimp-subscribe-section-scrollbox label {
+  font-size: 1rem;
+  margin-bottom: 0.4375rem;
+  font-weight: normal;
+  display: block;
+}
+
+.mailchimp-subscribe-section .email {
+  padding: 0 0.625rem;
+  border: 1px solid #ABB0B2;
+  border-radius: 0.1875rem;
+  color: #343434;
+  background-color: #fff;
+  box-sizing: border-box;
+  display: inline-block;
+  vertical-align: top;
+  margin: 0 0 0.3125rem;
+  width: 100%;
+}
+
+.mailchimp-subscribe-section .button {
+  border-radius: 0.1875rem;
+  font-weight: bold;
+  border: 1px solid #ABB0B2;
+  color: #2c8a3d;
+  background-color: #fff;
+  box-sizing: border-box;
+  display: block;
+  vertical-align: top;
+  transition: all 0.23s ease-in-out 0s;
+  margin: 0;
+  letter-spacing: 1px;
+  width: 100%;
+}
+
+#mailchimp-subscribe-section-footer #mc-embedded-subscribe-footer {
+  color: #333333;
+}
+
+#mailchimp-subscribe-section-scrollbox #mc-embedded-subscribe-scrollbox:hover {
+  background-color: #f8f8f8;
+  color: #000;
+  cursor: pointer;
+}
+
+#mailchimp-subscribe-section-footer #mc-embedded-subscribe-footer:hover {
+  background-color: #2c8a3d;
+  color: #f0f0f0;
+  cursor: pointer;
+}
+
+.mailchimp-subscribe-section .email,
+.mailchimp-subscribe-section .button {
+  height: 1.875rem;
+  font-size: 0.875rem;
+}
+
+@media only screen and (min-width: 980px) {
+  #mailchimp-subscribe-section-scrollbox #mc_embed_signup-scrollbox label {
+    font-size: 1.125rem;
+    margin-bottom: 0.1875rem;
+  }
+
+  .mailchimp-subscribe-section .email,
+  .mailchimp-subscribe-section .button {
+    height: 2.1875rem;
+  }
+}
+
+@media only screen and (max-width: 979px) {
+  .mailchimp-subscribe-section .email {
+    margin-bottom: 0.1875rem;
+  }
+}
+
+.navbar-custom {
+  border-bottom-color: {
+      {
+      site.navbar-col | default: "#EAEAEA"
+    }
+  }
+
+  ;
+}
+
+.navbar-custom.top-nav-short,
+.navbar-custom.top-nav-expanded {
+  border-bottom-color: {
+      {
+      site.navbar-border-col | default: "#DDDDDD"
+    }
+  }
+
+  ;
+}
+
+/* Support button in navbar */
+.navbar-custom .navbar-nav li a[href*="github.com/sponsors"] {
+  color: hotpink;
+  transition: background 300ms, color 300ms;
+}
+
+.navbar-custom .navbar-nav li a[href*="github.com/sponsors"]:hover {
+  background: hotpink;
+  color: #3344bb;
+}
+
+@media (min-width: 768px) {
+  .navbar-custom .navbar-nav .nav-item:not(.dropdown):last-child .nav-link {
+    padding-right: 1rem;
+  }
+}
+
+/* Buttons */
+
+.actionbtn {
+  display: inline-block;
+  margin: 0.5rem 0;
+  font-family: arial;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.9375rem 3rem;
+  border-radius: 5rem;
+  background: #4fc949;
+  font-size: 1.25rem;
+  color: #fff;
+  text-decoration: none !important;
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-shadow: none;
+}
+
+.actionbtn:hover,
+.actionbtn:focus {
+  background: #3fb13a;
+  color: #fff;
+}
+
+.actionbtn .far {
+  margin-right: 0.3125rem;
+}
+
+.btn[disabled] {
+  cursor: not-allowed;
+}
