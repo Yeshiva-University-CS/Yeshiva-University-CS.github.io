@@ -2,11 +2,11 @@ theme: beautiful-jekyll-theme
 
 # remote_theme: daattali/beautiful-jekyll@5.0.0
 
-title: Computer Science | Yeshiva University
-author: Yeshiva University
+title: Computer Science | Yeshiva College
+author: Yeshiva College
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Yeshiva University's Computer Science Department
+  Yeshiva College's Computer Science Department
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: jekyllrb
@@ -20,8 +20,9 @@ plugins:
 
 # --- List of links in the navigation bar --- #
 navbar-links:
-  About: "about"
+  Faculty: "/faculty"
   Program Information: "/program"
+  Alumni: "/alumni"
   FAQs: "/faqs"
   Contact Us: "/contact"
   Resources:
@@ -32,7 +33,7 @@ navbar-links:
 
 # Image to show in the navigation bar - works best with a square image
 # Remove this parameter if you don't want an image in the navbar
-avatar: "/assets/img/favicon.ico"
+avatar: "/assets/img/logo.png"
 site-css: "/assets/css/yu.css"
 
 # navbar-img: "/assets/img/banner-background.png"
@@ -60,6 +61,7 @@ social-network-links:
   twitter: yunews
   youtube: c/yeshivauniversity
   instagram: yeshiva_university
+  linkedin: groups/36447/
 
 
 # How to display the link to your website in the footer

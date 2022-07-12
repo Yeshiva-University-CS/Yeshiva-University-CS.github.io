@@ -1,3 +1,4 @@
+make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # GNU Make 3.81
 # Copyright (C) 2006  Free Software Foundation, Inc.
 # This is free software; see the source for copying conditions.
@@ -6,7 +7,7 @@
 
 # This program built for i386-apple-darwin11.3.0
 
-# Make data base, printed on Tue Jun 14 18:12:59 2022
+# Make data base, printed on Tue Jul 12 09:14:30 2022
 
 # Variables
 
@@ -15,11 +16,7 @@
 # automatic
 ?F = $(notdir $?)
 # environment
-ELECTRON_NO_ATTACH_CONSOLE = 1
-# environment
 VSCODE_LOG_NATIVE = false
-# environment
-NVM_INC = /Users/davidfreilich/.nvm/versions/node/v12.18.3/include/node
 # automatic
 ?D = $(patsubst %/,%,$(dir $?))
 # automatic
@@ -37,31 +34,19 @@ _ = /usr/bin/make
 # makefile (from `Makefile', line 1)
 MAKEFILE_LIST :=  Makefile
 # environment
-GO111MODULE = on
-# environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
 __CFBundleIdentifier = com.microsoft.VSCode
 # environment
-P9K_SSH = 0
+VSCODE_IPC_HOOK_EXTHOST = /var/folders/nk/xpxwnhhn1q990j1b_y25961h0000gn/T/vscode-ipc-fa105eb6-631e-489e-8a06-82ad52c3ab9f.sock
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /var/folders/nk/xpxwnhhn1q990j1b_y25961h0000gn/T/vscode-ipc-d1699f99-48d7-4a2b-93d6-77b1eb5527bd.sock
+VSCODE_CWD = /
 # environment
-VSCODE_CWD = /Users/davidfreilich/workspace/Yeshiva-University-CS.github.io
-# environment
-PATH = /Users/davidfreilich/.pyenv/shims:/Users/davidfreilich/.pyenv/bin:/Users/davidfreilich/.asdf/shims:/Users/davidfreilich/.asdf/bin:/Users/davidfreilich/.nvm/versions/node/v12.18.3/bin:/Users/davidfreilich/.pyenv/bin:/Users/davidfreilich/.pyenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/VMware Fusion Tech Preview.app/Contents/Public:/usr/local/share/dotnet:~/.dotnet/tools:/Library/Apple/usr/bin:/usr/local/go/bin:/Users/davidfreilich/go/bin:/Users/davidfreilich/.local/bin:/Users/davidfreilich/.fzf/bin:/Users/davidfreilich/.local/bin
-# environment
-LSCOLORS = Gxfxcxdxbxegedabagacad
-# environment
-GOPATH = /Users/davidfreilich/go
-# environment
-NVM_BIN = /Users/davidfreilich/.nvm/versions/node/v12.18.3/bin
+PATH = /usr/bin:/bin:/usr/sbin:/sbin
 # environment
 VSCODE_LOG_STACK = false
 # environment
 ELECTRON_RUN_AS_NODE = 1
-# environment
-PYENV_ROOT = /Users/davidfreilich/.pyenv
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
@@ -77,55 +62,37 @@ ORIGINAL_XDG_CURRENT_DESKTOP = undefined
 # environment
 VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
 # environment
-PYENV_SHELL = zsh
-# environment
 HOME = /Users/davidfreilich
 # default
 MAKEFILEPATH := /Applications/Xcode.app/Contents/Developer/Makefiles
 # environment
-VSCODE_CLI = 1
-# environment
-VSCODE_CODE_CACHE_PATH = /Users/davidfreilich/Library/Application Support/Code/CachedData/4af164ea3a06f701fe3e89a2bcbb421d2026b68f
+VSCODE_CODE_CACHE_PATH = /Users/davidfreilich/Library/Application Support/Code/CachedData/30d9c6cd9483b2cc586687151bcbcd635f373630
 # environment
 LOGNAME = davidfreilich
 # environment
 APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
-# environment
-NVM_CD_FLAGS = -q
-# environment
-ZSH = /Users/davidfreilich/.oh-my-zsh
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # automatic
 ^D = $(patsubst %/,%,$(dir $^))
 # environment
 XPC_FLAGS = 0x0
-# environment
-COLORTERM = truecolor
 # default
 MAKE = $(MAKE_COMMAND)
+# default
+MAKECMDGOALS := all
 # environment
-LC_TERMINAL = iTerm2
-# environment
-SHLVL = 3
+SHLVL = 1
 # default
 MAKE_VERSION := 3.81
 # environment
 USER = davidfreilich
 # makefile
 .DEFAULT_GOAL := install-ruby
-# default
-MAKECMDGOALS := all
-# environment
-TERM_SESSION_ID = w0t0p1:0FAFB75B-0561-4C35-A4E5-670D236ED3AB
-# environment
-LESS = -R
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # default
 MAKE_COMMAND := /Applications/Xcode.app/Contents/Developer/usr/bin/make
-# environment
-TERM_PROGRAM = iTerm.app
 # default
 .VARIABLES := 
 # environment
@@ -133,7 +100,7 @@ TMPDIR = /var/folders/nk/xpxwnhhn1q990j1b_y25961h0000gn/T/
 # automatic
 *F = $(notdir $*)
 # environment
-VSCODE_IPC_HOOK = /Users/davidfreilich/Library/Application Support/Code/1.68.0-main.sock
+VSCODE_IPC_HOOK = /Users/davidfreilich/Library/Application Support/Code/1.68.1-main.sock
 # makefile
 MAKEFLAGS = Rrqp
 # environment
@@ -141,21 +108,11 @@ MFLAGS = -Rrqp
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
-TERM_PROGRAM_VERSION = 3.4.15
-# environment
-NVM_DIR = /Users/davidfreilich/.nvm
-# environment
-XPC_SERVICE_NAME = application.com.microsoft.VSCode.8694701329.8694701335.19AD4D31-0054-4C4C-8ED5-203A35360407
-# environment
-LC_TERMINAL_VERSION = 3.4.15
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.8694701329.8694701335
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # automatic
 +F = $(notdir $+)
-# environment
-ITERM_SESSION_ID = w0t0p1:0FAFB75B-0561-4C35-A4E5-670D236ED3AB
-# environment
-COLORFGBG = 7;0
 # environment
 __CF_USER_TEXT_ENCODING = 0x1F5:0x0:0x0
 # environment
@@ -165,21 +122,11 @@ MAKEFILES :=
 # automatic
 <F = $(notdir $<)
 # environment
-ITERM_PROFILE = New Default
-# environment
-PAGER = less
-# environment
 LC_ALL = C
-# environment
-P9K_TTY = old
-# environment
-GOCMD = richgo
 # automatic
 ^F = $(notdir $^)
 # default
 SUFFIXES := 
-# environment
-ASDF_DIR = /Users/davidfreilich/.asdf
 # default
 .INCLUDE_DIRS = /usr/local/include
 # environment
@@ -187,13 +134,9 @@ MAKELEVEL := 0
 # environment
 LANG = C
 # environment
-TERM = xterm-256color
-# environment
-_P9K_TTY = /dev/ttys003
-# environment
-VSCODE_PID = 21701
+VSCODE_PID = 1078
 # variable set hash-table stats:
-# Load=91/1024=9%, Rehash=0, Collisions=4/115=3%
+# Load=62/1024=6%, Rehash=0, Collisions=1/86=1%
 
 # Pattern-specific Variable Values
 
@@ -201,9 +144,9 @@ VSCODE_PID = 21701
 
 # Directories
 
-# . (device 16777220, inode 8691360226): 14 files, no impossibilities.
+# . (device 16777220, inode 8691360226): 21 files, no impossibilities.
 
-# 14 files, no impossibilities in 1 directories.
+# 21 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -242,7 +185,7 @@ install-ruby:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-06-08 22:11:57
+#  Last modified 2022-06-30 22:12:24
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -253,7 +196,7 @@ build:
 #  Modification time never checked.
 #  File has not been updated.
 #  commands to execute (from `Makefile', line 15):
-	cd src && bundle exec jekyll serve --livereload
+	bundle exec jekyll serve --livereload
 	
 
 # Not a target:
@@ -262,18 +205,26 @@ build:
 #  Modification time never checked.
 #  File has not been updated.
 
+clean:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
+#  commands to execute (from `Makefile', line 18):
+	rm -rf _site .jekyll-cache
+	
+
 install-bundler:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
 #  commands to execute (from `Makefile', line 10):
-	cd src
 	gem install jekyll bundler
 	bundle add webrick
+	bundle install
 	
 
 # files hash-table stats:
-# Load=7/1024=1%, Rehash=0, Collisions=0/19=0%
+# Load=8/1024=1%, Rehash=0, Collisions=0/20=0%
 # VPATH Search Paths
 
 # No `vpath' search paths.
@@ -285,7 +236,7 @@ install-bundler:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Tue Jun 14 18:12:59 2022
+# Finished Make data base on Tue Jul 12 09:14:30 2022
 
  
 make: *** No rule to make target `all'.  Stop.

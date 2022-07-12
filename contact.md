@@ -4,12 +4,12 @@ title: Contact Us
 share-title: YU Computer Science | Contact Us
 ---
 
+Interested in Getting Involved?
+If you are an industry professional and want to mentor C.S. students or give a guest lecture, or would like to get involved in any other way, please contact Judah Diament at [diament@yu.edu](mailto:diament@yu.edu).
+
 <!-- <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>enableSubmitContact = function(){ document.getElementById("submit_contact").disabled = false; }</script>
  -->
-
-Interested in Getting Involved?
-If you are an industry professional and want to mentor C.S. students or give a guest lecture, or would like to get involved in any other way, please contact Judah Diament at [diament@yu.edu](mailto:diament@yu.edu).
 
 <!-- You can also send us a message using this form:
 
