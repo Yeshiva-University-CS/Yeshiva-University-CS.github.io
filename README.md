@@ -17,4 +17,5 @@ New TODO:
 4. Connect YUCS logo to the CS front left, and don't have in circle
 5. Ensure Judah can set up and work with it
 6. Ensure Github Pages publishing works smoothly
-7. Add favicon
+7. ~Add favicon~
+8. BeautifulJekyll markdown has an example [here](https://beautifuljekyll.com/2020-02-28-test-markdown/), with the code for it [here](https://raw.githubusercontent.com/daattali/beautiful-jekyll/master/_posts/2020-02-28-test-markdown.md)

@@ -40,4 +40,8 @@ Students who have matriculated before Fall 2017 may follow the old requirements.
 | **TOTALS**                                                                                                                                                 | **22**      | **8**                 |
 
 
-For more details regarding what the various categories (COWC, HBSI, etc.) mean, what Y.C. courses count towards them, etc. please consult Y.C.’s web site or [academic advising](https://www.yu.edu/academic-advising/undergraduate-men). Since B.S. students must be on campus for 8 semesters and there are 8 non-C.S. requirements, B.S. students can take one non-C.S. requirement each semester to pace themselves and evenly distribute their workload.
+For more details regarding what the various categories (COWC, HBSI, etc.) mean, what Y.C. courses count towards them, etc. please consult Y.C.’s web site or [academic advising](https://www.yu.edu/academic-advising/undergraduate-men).
+
+
+{: .box-note}
+Since B.S. students must be on campus for 8 semesters and there are 8 non-C.S. requirements, B.S. students can take one non-C.S. requirement each semester to pace themselves and evenly distribute their workload.
