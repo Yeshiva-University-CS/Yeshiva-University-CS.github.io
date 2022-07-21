@@ -31,9 +31,6 @@ navbar-links:
 
 # --- Logo --- #
 
-# Image to show in the navigation bar - works best with a square image
-# Remove this parameter if you don't want an image in the navbar
-avatar: "/assets/img/logo.png"
 site-css: "/assets/css/yu.css"
 
 # navbar-img: "/assets/img/banner-background.png"
@@ -44,11 +41,15 @@ footer-text-col: "#ffffff"
 footer-link-col: "#E5E4E4"
 footer-hover-col: "#0085A1"
 
+# Image to show in the navigation bar - works best with a square image
+# Remove this parameter if you don't want an image in the navbar
+# avatar: "/assets/img/logo.png"
 # By default, the image is cut into a circle. You can disable this behaviour by setting 'round-avatar: false'
-round-avatar: true
+# round-avatar: true
+
 # If you want to have an image logo in the top-left corner instead of having the title of the website,
 # then specify the following parameter
-#title-img: /path/to/image
+title-img: "/assets/img/df-yc-cs.png"
 
 # --- Footer social media links --- #
 
