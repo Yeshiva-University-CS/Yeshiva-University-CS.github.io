@@ -694,3 +694,7 @@ footer a {
 .btn[disabled] {
     cursor: not-allowed;
 }
+
+.iframe-box {
+    text-align: center;
+}

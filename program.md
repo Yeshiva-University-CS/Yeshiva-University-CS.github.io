@@ -5,6 +5,8 @@ share-title: YU Computer Science | Program Information
 ---
 
 # Computer Science Major
+Students earn a **Bachelor of Science (BS) in Computer Science** upon completing either of our four year tracks, and a **Bachelor of the Arts (BA)** for completing our three year track. Please see the [Program Information](/program) for details about the different tracks.
+
 For complete information regarding the tracks in the major, requirements, and prerequisites, please see [The Complete Guide to the Computer Science Major at Yeshiva College](https://www.yu.edu/sites/default/files/inline-files/Complete-YC-CS-Guide-Spring-2022-v2.3.1.pdf) (current version: Spring 2022, v2.3.1;  [previous version: Spring 2021](https://www.yu.edu/sites/default/files/inline-files/Complete-YC-CS-Guide-Spring-2021.pdf)).
 
 After you have read the guide, feel free to contact [Professor Diament](https://www.yu.edu/faculty/pages/diament-judah) or [Academic Advising](https://www.yu.edu/academic-advising/undergraduate-men) with any further questions.

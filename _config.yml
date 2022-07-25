@@ -26,8 +26,12 @@ navbar-links:
   FAQs: "/faqs"
   Contact Us: "/contact"
   Resources:
+    - Academic Integrity: "/integrity"
     - YU Home: "https://www.yu.edu/yeshiva-college/ug/computer-science"
     - Apply Now: "https://yu.elluciancrmrecruit.com/Apply/Account/Login?ReturnUrl=/Apply/"
+    - Career Resources: "/career-resources"
+    - Orientation: "/orientation-2020"
+    - Guest Lectures: "/guest-lectures"
 
 # --- Logo --- #
 

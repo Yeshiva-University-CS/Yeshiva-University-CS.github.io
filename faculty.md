@@ -9,6 +9,3 @@ permalink: /faculty
 * 42 issued patents
 * 120+ publications
 * __*Student success as its #1 priority*__
-
-# Degrees Offered
-Students earn a **Bachelor of Science (BS) in Computer Science** upon completing either of our four year tracks, and a **Bachelor of the Arts (BA)** for completing our three year track. Please see the [Program Information](/program) for details about the different tracks.
