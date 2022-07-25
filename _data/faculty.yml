@@ -1,0 +1,101 @@
+teachers:
+  - name: "Judah Diament"
+    title: "Department Chair, Clinical Associate Professor of Computer Science"
+    subtitle: "Program Director, Undergraduate Data Science"
+    links:
+      - LinkedIn: "https://www.linkedin.com/in/jdiament/"
+      - Google Scholar: "https://scholar.google.com/citations?user=EdYH5toAAAAJ&hl=en"
+    resume: >-
+      * IBM T.J. Watson Research Center: 2000-2014
+        - Patents: 14 U.S. patents issued
+        - Publications: 6 conference papers & journal articles
+        - Impacted multiple IBM software products, including shipping code
+      * Goldman Sachs: 2014-2016, Vice President, Finance Engineering
+
+      * Alumnus of Y.U., R.I.E.T.S.
+
+  - name: "Richard James"
+    title: "Adjunct Professor of Machine Learning"
+    links:
+      - LinkedIn: "https://www.linkedin.com/in/duttonrichard"
+    resume: >-
+      * Facebook: Feb. 2021 to Present Head of Content Understanding in AI Platform
+
+      * Google: Dec. 2017 - Feb. 2021 Head of Machine Learning for Corporate Engineering
+
+      * Millennium: 2017 Head of Data Analytics and Cloud Application Development
+
+      * Barclays: 2005-2014 Director; Head of Rates Technology Asia
+
+      * Microsoft: 2000-2001 Speech Recognition
+  - name: "Dave Feltenberger"
+    title: "Adjunct Professor of Computer Science"
+    links:
+      - LinkedIn: "https://www.linkedin.com/in/davefeltenberger/"
+    resume: >-
+      * Google: 2012-Present Senior Staff Software Engineer, Quality & ML in Google Maps; founder of Corp Eng ML team
+
+      * Goldman Sachs: 2010-2012 Senior Software Engineer, post-execution trading platform
+  - name: "Van E. Kelly"
+    title: "Clinical Professor of Computer Science"
+    links:
+      - LinkedIn: "https://www.linkedin.com/in/van-kelly-5b809445/"
+    resume: >-
+      * Bell Labs: 1993-2001
+        - Distinguished Member of Technical Staff
+      * Motorola: 2006-2010
+        - Senior Member Technical Staff
+  - name: "Avraham Leff"
+    title: "Professor of Computer Science"
+    links:
+      - LinkedIn: "https://www.linkedin.com/in/avraham-leff-019a156/"
+      - Google Scholar: "https://scholar.google.com/citations?user=1Q9jN9YAAAAJ&hl=en"
+      - dblp: "http://dblp.uni-trier.de/pers/hd/l/Leff:Avraham.html"
+    resume: >-
+      * IBM T.J. Watson Research Center: 1991-2017
+        - Patents: 18 U.S. patents issued, more pending
+        - Publications: 44 conference papers & journal article
+        - Impacted multiple IBM software products, including shipping code
+  - name: "F. Patricia Medina"
+    title: "Assistant Professor of Computer Science"
+    links:
+      - LinkedIn: "https://www.linkedin.com/in/fpatriciamedina/"
+      - Google Scholar: "https://scholar.google.com/citations?user=846rBF0AAAAJ&hl=en"
+    resume: >-
+      * Publications: 6 papers, 3 theses, 40 conference talks, seminars, and posters.
+
+      * Worcester Polytechnic Institute: 2016-2019.
+
+      * Brown University: Spring 2019. Visiting Postdoctoral Scholar, ICERM, Computer Vision.
+
+      * Oregon State University: 2014-2016. Instructor
+
+      * Bowling Green State University: 2006-2009. Graduate Research & Teaching Assistant
+
+      * Universidad Simón Bolívar: 2004-2006. Instructor (Assistant Professor level)
+  - name: "Avi Rosenfeld"
+    title: "Adjunct Professor of Computer Science"
+    links:
+      - LinkedIn: "https://www.linkedin.com/in/avi-rosenfeld-20ba403"
+      - Google Scholar: "https://scholar.google.co.il/citations?user=-cHvrVgAAAAJ&hl=en"
+    resume: >-
+      * Lev Academic Center (Machon Lev) 2007-present
+        - Publications: 23 journal articles, 8 book chapters, 39 conference articles, and 9 posters.
+        - Patents: 1 U.S. patent issued, 2 pending
+        - Head of Data Science Program of Machon Lev
+      * One of four member of Israel’s Education Counsel responsible for judging all academic degrees in Data Science
+
+      * Alumnus of M.T.A., Y.U., Azrieli, R.I.E.T.S.
+  - name: "Ben Wymore"
+    title: "Assistant Professor of Computer Science"
+    links:
+      - Google Scholar: "https://scholar.google.com/citations?user=RCLvAkcAAAAJ"
+    resume: >-
+      * Patents: 9 U.S. patents issued
+
+      * Intel
+        - Application Services and Research Laboratory: speech recognition and natural grammars for residential productivity applications
+        - Intel Tablet Organization
+      * Crestron Electronics
+        - Software for touchpanels, audio servers, and other products
+        - Team lead for Crestron's iOS and Android applications
