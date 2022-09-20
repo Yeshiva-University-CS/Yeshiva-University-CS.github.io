@@ -4,6 +4,7 @@ teachers:
     subtitle: "Program Director, Undergraduate Data Science"
     links:
       - LinkedIn: "https://www.linkedin.com/in/jdiament/"
+      - YU: "https://www.yu.edu/faculty/pages/diament-judah"
       - Google Scholar: "https://scholar.google.com/citations?user=EdYH5toAAAAJ&hl=en"
     resume: >-
       * IBM T.J. Watson Research Center: 2000-2014
@@ -40,6 +41,7 @@ teachers:
     title: "Clinical Professor of Computer Science"
     links:
       - LinkedIn: "https://www.linkedin.com/in/van-kelly-5b809445/"
+      - YU: "https://www.yu.edu/faculty/pages/kelly-van"
     resume: >-
       * Bell Labs: 1993-2001
         - Distinguished Member of Technical Staff
@@ -49,6 +51,7 @@ teachers:
     title: "Professor of Computer Science"
     links:
       - LinkedIn: "https://www.linkedin.com/in/avraham-leff-019a156/"
+      - YU: "https://www.yu.edu/faculty/pages/leff-avraham"
       - Google Scholar: "https://scholar.google.com/citations?user=1Q9jN9YAAAAJ&hl=en"
       - dblp: "http://dblp.uni-trier.de/pers/hd/l/Leff:Avraham.html"
     resume: >-
@@ -88,7 +91,9 @@ teachers:
       * Alumnus of M.T.A., Y.U., Azrieli, R.I.E.T.S.
   - name: "Ben Wymore"
     title: "Assistant Professor of Computer Science"
+    title: "Assistant Professor of Computer Science"
     links:
+      - YU: "https://www.yu.edu/faculty/pages/wymore-ben"
       - Google Scholar: "https://scholar.google.com/citations?user=RCLvAkcAAAAJ"
     resume: >-
       * Patents: 9 U.S. patents issued

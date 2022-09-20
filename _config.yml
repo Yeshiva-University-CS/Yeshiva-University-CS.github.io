@@ -35,7 +35,7 @@ navbar-links:
 
 # --- Logo --- #
 
-site-css: "/assets/css/yu.css"
+site-css: "/assets/css/index.css"
 
 # navbar-img: "/assets/img/banner-background.png"
 # navbar-text-col: "#ffffff"
@@ -59,19 +59,19 @@ title-img: "/assets/img/df-yc-cs.png"
 
 # Select the social network links that you want to show in the footer.
 # Uncomment the links you want to show and add your information to each one.
-social-network-links:
-  email: "diament@yu.edu"
-  facebook: yeshivauniversity
-  github: yeshiva-University-CS
-  twitter: yunews
-  youtube: c/yeshivauniversity
-  instagram: yeshiva_university
-  linkedin: groups/36447/
+# social-network-links:
+#   email: "diament@yu.edu"
+#   facebook: yeshivauniversity
+#   github: yeshiva-University-CS
+#   twitter: yunews
+#   youtube: c/yeshivauniversity
+#   instagram: yeshiva_university
+#   linkedin: groups/36447/
 
 
 # How to display the link to your website in the footer
 # Remove this if you don't want a link in the footer
-url-pretty: "MyWebsite.com"
+url-pretty: ""
 
 
 # Whether or not to show an excerpt for every blog post in the feed page

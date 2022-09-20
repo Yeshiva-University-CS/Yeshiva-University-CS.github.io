@@ -443,6 +443,7 @@ footer {
     padding: 0 0.9375rem 0.9375rem;
     font-size: 1rem;
     line-height: 1.5em;
+    font-style: italic;
 }
 
 @media only screen and (max-width: 1899px) {
@@ -702,4 +703,56 @@ footer a {
 .container {
     display: grid;
     grid-template-columns: 50% 50%;
+}
+
+.faculty {
+    display: inline-flex;
+}
+
+.faculty-img {
+    max-width: none;
+    margin-right: 25px;
+}
+
+.margin-less {
+    margin: 0 0 0 0;
+}
+
+.fa {
+    display: inline-block;
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+}
+
+.mini-icons {
+    background-color: white;
+    width: 32px;
+    height: 32px;
+    display: inline-block;
+    /* makes it fit in like an <img> */
+    background-size: cover;
+    /* or contain */
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.links-row ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 5px;
+    margin-right: 25px;
+    text-align: center;
+    /* border: 1px solid #000; */
+    /* border-radius: 10%; */
+}
+
+.links-row ul li {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    margin-right: 10px;
 }

@@ -1,6 +1,8 @@
 ---
 layout: page
 title: Faculty
+css:
+  - /assets/css/index.css
 permalink: /faculty
 ---
 
@@ -10,36 +12,42 @@ permalink: /faculty
 * 120+ publications
 * __*Student success as its #1 priority*__
 
-<br />
+<hr />
 ## Our Faculty includes:
 
-<br />
-
+<div id="faculty-list">
 {% for v in site.data.faculty['teachers'] %}
-<div class="container" style="display:flex;">
-    <div class="item" style="flex: 1;">
-        <img src="/assets/img/faculty/{{v.name | cgi_escape }}.jpeg" alt="{{v.name}}">
+
+<div class="faculty">
+    <div class="faculty-pic">
+        <img class="faculty-img" src="/assets/img/faculty/{{v.name | cgi_escape }}.jpeg" />
+
+        <div class="links-row">
+            <ul>
+            {% for l_hash in v.links %}{% for link in l_hash %}
+                <li>
+                <a href="{{link[1]}}" target="_blank">
+                    <div class="fa mini-icons" style="background-image: url('/assets/img/mini-logos/{{link[0] | downcase | cgi_escape}}.png')"></div>
+                </a>
+                </li>
+            {% endfor %}{% endfor %}
+            </ul>
+        </div>
     </div>
 
-<div class="item" style="flex: 1;" markdown="1">
+<div class="faculty-info" markdown="1">
+## {{ v.name }}
+> **{{ v.title}}**
+{% if v.subtitle!= nil %}> **{{ v.subtitle }}**{% endif %}
 
-### {{ v.name }}
-
-#### {{ v.title }}
-> {{ v.subtitle }}
-
-{% for l_hash in v.links %}{% for link in l_hash %}
-* <a href="{{link[1]}}">{{link[0]}}</a>
-{% endfor %}{% endfor %}
-
+<div class="resume" markdown="1">
 {{ v.resume }}
-
-> {{v.date}}
-
+</div>
 </div>
 </div>
 <hr />
-{% endfor %}
+    {% endfor %}
+</div>
 
 
 A number of courses in the Computer Science major are taught by the [faculty of the Department of Mathematics](https://www.yu.edu/yeshiva-college/ug/mathematics/faculty).
