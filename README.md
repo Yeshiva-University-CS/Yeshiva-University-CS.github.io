@@ -38,7 +38,7 @@ TODO:
 5. ~Fix Faculty links~
 6. ~Make less narrow~
 7. ~Make clear README with instructions on how to add a new jekyll page, or a new folder (like summer_2021)~
-8.  Add blog posts
+8.  ~Add blog posts~
 9.  Add link to old summer
 10. Add selectable links to faqs
 11. Make site index

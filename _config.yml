@@ -26,6 +26,7 @@ navbar-links:
   Program Information: "/program"
   Alumni: "/alumni"
   FAQs: "/faqs"
+  Blog: "/blog"
   Contact Us: "/contact"
   Resources:
     - Academic Integrity: "/integrity"
@@ -80,6 +81,10 @@ feed_show_excerpt: true
 
 # The keywords to associate with your website, for SEO purposes
 keywords: "yeshiva,university,computer,science,yu,cs"
+
+collections:
+  authors:
+    output: true
 
 include:
  - _pages
