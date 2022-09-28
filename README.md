@@ -19,6 +19,12 @@ Broadly, the directory is made up of a few important directories/files:
 # Add Pages
 To add a new page, make a post in the `_pages` directory with the heading:
 ```
+---
+layout: page
+title: My Title
+full-width: true # if we want it to be full-width
+permalink: /my-link
+---
 ```
 
 If you want an example of specific tags you can use in a page, BeautifulJekyll markdown has an example [here](https://beautifuljekyll.com/2020-02-28-test-markdown/), with the code for it [here](https://raw.githubusercontent.com/daattali/beautiful-jekyll/master/_posts/2020-02-28-test-markdown.md)
