@@ -2,6 +2,8 @@
 layout: page
 title: Program Information
 share-title: YU Computer Science | Program Information
+full-width: true
+permalink: /program
 ---
 
 # Computer Science Major

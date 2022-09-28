@@ -756,3 +756,15 @@ footer a {
     line-height: 32px;
     margin-right: 10px;
 }
+
+/* .container-md {
+    margin: 0px 0px;
+}
+
+@media (min-width: 1200px) .container,
+.container-lg,
+.container-md,
+.container-sm,
+.container-xl {
+    max-width: 3040px;
+} */

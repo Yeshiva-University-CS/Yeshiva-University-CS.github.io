@@ -3,6 +3,7 @@ layout: base
 title: "Yeshiva College | Computer Science Department"
 css:
   - /assets/css/index.css
+permalink: /index
 ext-css:
   - //fonts.googleapis.com/css?family=Roboto:400,700
 ---

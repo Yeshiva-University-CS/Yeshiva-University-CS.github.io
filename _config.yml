@@ -4,19 +4,21 @@ theme: beautiful-jekyll-theme
 
 title: Computer Science | Yeshiva College
 author: Yeshiva College
-email: your-email@example.com
+email: diament@yu.edu
 description: >- # this means to ignore newlines until "baseurl:"
   Yeshiva College's Computer Science Department
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: jekyllrb
-github_username:  jekyll
+github_username:  Yeshiva-University-CS
 
 # Build settings
 plugins:
   - jekyll-feed
+  - jemoji
   # - jekyll-remote-theme
 
+remove-ads: true
 
 # --- List of links in the navigation bar --- #
 navbar-links:
@@ -27,14 +29,13 @@ navbar-links:
   Contact Us: "/contact"
   Resources:
     - Academic Integrity: "/integrity"
-    - YU Home: "https://www.yu.edu/yeshiva-college/ug/computer-science"
-    - Apply Now: "https://yu.elluciancrmrecruit.com/Apply/Account/Login?ReturnUrl=/Apply/"
     - Career Resources: "/career-resources"
     - Orientation: "/orientation-2020"
     - Guest Lectures: "/guest-lectures"
+    - YU Home: "https://www.yu.edu/yeshiva-college/ug/computer-science"
+    - Apply Now: "https://yu.elluciancrmrecruit.com/Apply/Account/Login?ReturnUrl=/Apply/"
 
 # --- Logo --- #
-
 site-css: "/assets/css/index.css"
 
 # navbar-img: "/assets/img/banner-background.png"
@@ -75,11 +76,13 @@ url-pretty: ""
 
 
 # Whether or not to show an excerpt for every blog post in the feed page
-feed_show_excerpt: false
+feed_show_excerpt: true
 
 # The keywords to associate with your website, for SEO purposes
 keywords: "yeshiva,university,computer,science,yu,cs"
 
+include:
+ - _pages
 
 # Exclude these files from production site
 exclude:

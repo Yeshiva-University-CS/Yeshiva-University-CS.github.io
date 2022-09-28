@@ -2,6 +2,7 @@
 layout: page
 title: Contact Us
 share-title: YU Computer Science | Contact Us
+permalink: /contact
 ---
 
 Interested in Getting Involved?

@@ -2,6 +2,7 @@
 layout: page
 title: Alumni
 share-title: YU Computer Science | Program Information
+permalink: /alumni
 ---
 ## Jobs:
 Recent graduates work in top companies across many industries, including:

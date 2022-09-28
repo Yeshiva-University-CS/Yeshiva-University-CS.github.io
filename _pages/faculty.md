@@ -4,6 +4,7 @@ title: Faculty
 css:
   - /assets/css/index.css
 permalink: /faculty
+full-width: true
 ---
 
 # Our Faculty has:
