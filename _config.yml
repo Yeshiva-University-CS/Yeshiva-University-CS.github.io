@@ -1,0 +1,101 @@
+theme: beautiful-jekyll-theme
+
+# remote_theme: daattali/beautiful-jekyll@5.0.0
+
+title: Computer Science | Yeshiva College
+author: Yeshiva College
+email: diament@yu.edu
+description: >- # this means to ignore newlines until "baseurl:"
+  Yeshiva College's Computer Science Department
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "" # the base hostname & protocol for your site, e.g. http://example.com
+twitter_username: jekyllrb
+github_username:  Yeshiva-University-CS
+
+# Build settings
+plugins:
+  - jekyll-feed
+  - jemoji
+  # - jekyll-remote-theme
+
+remove-ads: true
+
+# --- List of links in the navigation bar --- #
+navbar-links:
+  Faculty: "/faculty"
+  Program Information: "/program"
+  Alumni: "/alumni"
+  FAQs: "/faqs"
+  Blog: "/blog"
+  Contact Us: "/contact"
+  Resources:
+    - Academic Integrity: "/integrity"
+    - Career Resources: "/career-resources"
+    - Orientation: "/orientation-2020"
+    - Guest Lectures: "/guest-lectures"
+    - YU Home: "https://www.yu.edu/yeshiva-college/ug/computer-science"
+    - Apply Now: "https://yu.elluciancrmrecruit.com/Apply/Account/Login?ReturnUrl=/Apply/"
+
+# --- Logo --- #
+site-css: "/assets/css/index.css"
+
+# navbar-img: "/assets/img/banner-background.png"
+# navbar-text-col: "#ffffff"
+navbar-col: "#ffffff"
+footer-col: "#0D2959"
+footer-text-col: "#ffffff"
+footer-link-col: "#E5E4E4"
+footer-hover-col: "#0085A1"
+
+# Image to show in the navigation bar - works best with a square image
+# Remove this parameter if you don't want an image in the navbar
+# avatar: "/assets/img/logo.png"
+# By default, the image is cut into a circle. You can disable this behaviour by setting 'round-avatar: false'
+# round-avatar: true
+
+# If you want to have an image logo in the top-left corner instead of having the title of the website,
+# then specify the following parameter
+title-img: "/assets/img/df-yc-cs.png"
+
+# --- Footer social media links --- #
+
+# Select the social network links that you want to show in the footer.
+# Uncomment the links you want to show and add your information to each one.
+# social-network-links:
+#   email: "diament@yu.edu"
+#   facebook: yeshivauniversity
+#   github: yeshiva-University-CS
+#   twitter: yunews
+#   youtube: c/yeshivauniversity
+#   instagram: yeshiva_university
+#   linkedin: groups/36447/
+
+
+# How to display the link to your website in the footer
+# Remove this if you don't want a link in the footer
+url-pretty: ""
+
+
+# Whether or not to show an excerpt for every blog post in the feed page
+feed_show_excerpt: true
+
+# The keywords to associate with your website, for SEO purposes
+keywords: "yeshiva,university,computer,science,yu,cs"
+
+collections:
+  authors:
+    output: true
+
+include:
+ - _pages
+
+# Exclude these files from production site
+exclude:
+  - CHANGELOG.md
+  - CNAME
+  - Gemfile
+  - Gemfile.lock
+  - LICENSE
+  - README.md
+  - screenshot.png
+  - docs/
