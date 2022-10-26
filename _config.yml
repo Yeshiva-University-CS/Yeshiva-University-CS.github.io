@@ -1,6 +1,6 @@
-theme: beautiful-jekyll-theme
+# theme: beautiful-jekyll-theme
 
-# remote_theme: daattali/beautiful-jekyll@5.0.0
+remote_theme: daattali/beautiful-jekyll@5.0.0
 
 title: Computer Science | Yeshiva College
 author: Yeshiva College
