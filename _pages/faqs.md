@@ -10,9 +10,7 @@ permalink: /faqs
 {:toc}
 
 ## Questions
-
-* toc
-{:toc}
+{:.no_toc}
 
 {% for q in site.data.faq['qs'] %}
 
