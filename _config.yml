@@ -86,6 +86,9 @@ collections:
   authors:
     output: true
 
+kramdown:
+    auto_ids: true
+
 include:
  - _pages
 
