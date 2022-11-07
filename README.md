@@ -40,9 +40,9 @@ TODO:
 7. ~Make clear README with instructions on how to add a new jekyll page, or a new folder (like summer_2021)~
 8.  ~Add blog posts~
 9.  ~Publish to Github Pages (post about it after Succos)~
-10. Add link to old summer
-11. Add selectable links to faqs
+10. ~Add link to old summer~
+11. ~Add selectable links to faqs~
 12. Make site index
 13. Ensure Judah can set up and work with it
-14. Ensure Github Pages publishing works smoothly
+14. ~Ensure Github Pages publishing works smoothly~
 15. TOC on top of FAQ page (I think can do this with kramdown {:toc}, but have to experiment on Github Pages)

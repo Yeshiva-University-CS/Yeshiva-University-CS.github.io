@@ -87,6 +87,7 @@ collections:
   authors:
     output: true
 
+markdown: kramdown
 kramdown:
     auto_ids: true
 
