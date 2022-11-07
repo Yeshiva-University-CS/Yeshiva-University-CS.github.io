@@ -38,6 +38,7 @@ navbar-links:
 
 # --- Logo --- #
 site-css: "/assets/css/index.css"
+site-js: "/assets/js/index.js"
 
 # navbar-img: "/assets/img/banner-background.png"
 # navbar-text-col: "#ffffff"

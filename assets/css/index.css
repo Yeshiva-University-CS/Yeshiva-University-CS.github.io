@@ -757,14 +757,23 @@ footer a {
     margin-right: 10px;
 }
 
-/* .container-md {
-    margin: 0px 0px;
+.header-link {
+    position: absolute;
+    /* left: -0.5em; */
+    opacity: 0;
+    margin-left: 0.5em;
+    /* right: 0.5em; */
+
+    \-webkit-transition: opacity 0.2s ease-in-out 0.1s;
+    \-moz-transition: opacity 0.2s ease-in-out 0.1s;
+    \-ms-transition: opacity 0.2s ease-in-out 0.1s;
 }
 
-@media (min-width: 1200px) .container,
-.container-lg,
-.container-md,
-.container-sm,
-.container-xl {
-    max-width: 3040px;
-} */
+h1:hover .header-link,
+h2:hover .header-link,
+h3:hover .header-link,
+h4:hover .header-link,
+h5:hover .header-link,
+h6:hover .header-link {
+    opacity: 1;
+}
