@@ -1,0 +1,106 @@
+<div class="rounded-lg bg-white p-8 shadow-lg">
+    <div class="mx-auto max-w-2xl">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">GitHub Token Required</h2>
+            <p class="mt-2 text-sm text-gray-600">Please provide your GitHub Personal Access Token to access repository data.</p>
+        </div>
+
+        <div id="tokenStatus" class="mb-6 hidden rounded-lg border p-4">
+            <div class="flex items-center gap-3">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="tokenStatusText" class="text-sm font-medium"></span>
+            </div>
+        </div>
+
+        <!-- Token Input Section -->
+        <div id="tokenFormSection" class="space-y-6">
+            <div id="tokenInputContainer">
+                <label for="githubToken" class="block text-sm font-medium text-gray-900">
+                    GitHub Personal Access Token
+                </label>
+                <div class="mt-2">
+                    <input type="password" 
+                           id="githubToken" 
+                           placeholder="ghp_..."
+                           class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 transition-colors focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div class="mt-2 flex items-start gap-2 rounded-md bg-blue-50 p-3">
+                    <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <p class="text-xs text-blue-800">
+                        Token will be stored securely in your browser's local storage.
+                        <br>
+                        <span class="font-medium">Required permissions:</span> <code class="rounded bg-blue-100 px-1 py-0.5">repo</code> (for private repos) or <code class="rounded bg-blue-100 px-1 py-0.5">public_repo</code> (for public repos only).
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <button onclick="window.app.saveToken()"
+                        class="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        Save Token & Load Data
+                    </span>
+                </button>
+                
+                <button onclick="window.app.clearToken()"
+                        class="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 sm:flex-initial">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Clear Token
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Token Saved Section -->
+        <div id="tokenSavedSection" class="hidden space-y-6">
+            <div class="rounded-lg bg-green-50 border border-green-200 p-4">
+                <p class="text-green-800 text-sm font-medium">Token saved successfully! Your data is loading...</p>
+            </div>
+            
+            <div class="flex justify-center">
+                <button onclick="window.app.clearToken()"
+                        class="rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Clear Token
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div id="tokenHelpSection" class="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <h3 class="mb-3 text-sm font-semibold text-gray-900">How to get a GitHub token:</h3>
+            <ol class="space-y-2 text-sm text-gray-700">
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">1</span>
+                    <span>Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">2</span>
+                    <span>Click "Generate new token (classic)"</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">3</span>
+                    <span>Select the appropriate repo permissions</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">4</span>
+                    <span>Copy the generated token and paste it above</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎓</text></svg>">
+    
+    <title>YC CS Student Tracking Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-theme-alpine.css">
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        code {
+            color: #dc2626;
+            font-size: 1.05em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        .ag-cell {
+            display: flex !important;
+            align-items: center !important;
+        }
+        
+        /* Status Badge Styles - Shared across all pages */
+        .status-badge {
+            vertical-align: middle;
+            height: 33px;
+            min-width: 60px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            padding: 0.375rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-have-job {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-no-job {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-awaiting {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-na {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+
+        /* Statistics Badge Styles */
+        .stat-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .stat-badge-red {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .stat-badge-amber {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .stat-badge-green {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+    </style>
+</head>
+<body class="bg-gray-100" x-data="{ sidebarOpen: false, settingsOpen: false, isDashboardView: true }">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 z-50 h-screen w-64 -translate-x-full transform bg-white shadow-xl transition-transform duration-300 lg:translate-x-0"
+           :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+        <div class="flex h-full flex-col">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 border-b border-gray-200 px-6 py-5">
+                <span class="text-3xl">🎓</span>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800">YC CS Tracker</h2>
+                    <p class="text-xs text-gray-500">Reporting Dashboard</p>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="flex-1 space-y-1 px-3 py-4">
+                <button class="tab-button flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-white bg-blue-600 transition-colors"
+                        hx-get="fragments/dashboard-content.html?v=2025-02-12-last-updated-right-justify"
+                        hx-target="#tab-container"
+                        hx-swap="innerHTML"
+                        @click="isDashboardView = true; document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('bg-blue-600', 'text-white')); document.querySelectorAll('.tab-button').forEach(b => b.classList.add('text-gray-700', 'hover:bg-gray-100')); $el.classList.remove('text-gray-700', 'hover:bg-gray-100'); $el.classList.add('bg-blue-600', 'text-white'); window.app.switchTab('dashboard', 2026);">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    <span>G26 Dashboard</span>
+                </button>
+                
+                <button class="tab-button flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                        hx-get="fragments/dashboard-content.html?v=2025-02-12-last-updated-right-justify"
+                        hx-target="#tab-container"
+                        hx-swap="innerHTML"
+                        @click="isDashboardView = true; document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('bg-blue-600', 'text-white')); document.querySelectorAll('.tab-button').forEach(b => b.classList.add('text-gray-700', 'hover:bg-gray-100')); $el.classList.remove('text-gray-700', 'hover:bg-gray-100'); $el.classList.add('bg-blue-600', 'text-white'); window.app.switchTab('dashboard', 2027);">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    <span>G27 Dashboard</span>
+                </button>
+                
+                <button class="tab-button flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                        hx-get="fragments/repo-status-content.html?v=2025-02-12-last-updated-right-justify"
+                        hx-target="#tab-container"
+                        hx-swap="innerHTML"
+                        @click="isDashboardView = false; document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('bg-blue-600', 'text-white')); document.querySelectorAll('.tab-button').forEach(b => b.classList.add('text-gray-700', 'hover:bg-gray-100')); $el.classList.remove('text-gray-700', 'hover:bg-gray-100'); $el.classList.add('bg-blue-600', 'text-white'); window.app.switchTab('repoStatus');">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                    </svg>
+                    <span>Repository Status</span>
+                </button>
+                
+                <!-- Filters Section (only visible for dashboard views) -->
+                <div x-show="isDashboardView"
+                     x-cloak
+                     :style="isDashboardView ? '' : 'display: none !important;'"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     class="mt-4">
+                    <!-- Separator -->
+                    <div class="border-t border-gray-200 mb-4"></div>
+                    
+                    <div class="px-4">
+                        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Filters</h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="mb-2 block text-xs font-medium text-gray-700">Job Status</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterJobStatus_Yes" value="Yes" checked onchange="window.app.handleFilterChange(this, 'filterJobStatus_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Yes</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterJobStatus_No" value="No" checked onchange="window.app.handleFilterChange(this, 'filterJobStatus_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">No</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="mb-2 block text-xs font-medium text-gray-700">Job Type</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterSeeking_IN" value="IN" checked onchange="window.app.handleFilterChange(this, 'filterSeeking_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Internship</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterSeeking_FT" value="FT" checked onchange="window.app.handleFilterChange(this, 'filterSeeking_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Full Time</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="mb-2 block text-xs font-medium text-gray-700">CS Track</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterTrack_AI" value="AI" checked onchange="window.app.handleFilterChange(this, 'filterTrack_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">AI</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterTrack_DIS" value="DIS" checked onchange="window.app.handleFilterChange(this, 'filterTrack_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">DIS</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterTrack_BA" value="BA" checked onchange="window.app.handleFilterChange(this, 'filterTrack_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">BA</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- Settings Section at Bottom -->
+            <div class="border-t border-gray-200 p-3">
+                <button @click="settingsOpen = !settingsOpen"
+                        class="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>Settings</span>
+                    <svg class="ml-auto h-4 w-4 transition-transform" :class="settingsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                
+                <!-- Settings Dropdown -->
+                <div x-show="settingsOpen" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95"
+                     class="mt-2 space-y-1 pl-4">
+                    <button onclick="window.app.refreshDataFromRepos()"
+                            class="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span>Refresh Data from Repos</span>
+                    </button>
+                    
+                    <button hx-get="fragments/token-form.html?v=2025-02-12-last-updated-right-justify"
+                            hx-target="#app-content"
+                            hx-swap="innerHTML"
+                            class="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                        </svg>
+                        <span>Change Token</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Mobile Sidebar Overlay -->
+    <div x-show="sidebarOpen" 
+         @click="sidebarOpen = false"
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-40 bg-gray-900 bg-opacity-50 lg:hidden"></div>
+    
+    <!-- Main Content -->
+    <div class="lg:pl-64">
+        <!-- Top Bar -->
+        <header class="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-white px-4 shadow-sm lg:px-8">
+            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden">
+                <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            
+            <div class="flex flex-1 items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">2026 Job Status Tracker</h1>
+                    <p class="text-sm text-gray-500">Monitor profiles, internships, and job placement</p>
+                </div>
+                
+                <div id="errorContainer" class="flex-1 mx-4"></div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
+                        <div class="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
+                        <span class="text-sm font-medium text-blue-900">Live</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Page Content -->
+        <main class="p-4 lg:p-4">
+            <div id="app-content">
+                <div class="flex items-center justify-center py-20">
+                    <div class="text-center">
+                        <div class="spinner"></div>
+                        <p class="mt-4 text-gray-600">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Refresh Data Modal -->
+    <div id="refreshModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            
+            <!-- Center modal -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div>
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                        <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-5">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                            Refreshing Profile Data
+                        </h3>
+                        <div class="mt-4">
+                            <div class="flex justify-center mb-4">
+                                <div class="spinner"></div>
+                            </div>
+                            <p id="refreshModalProgress" class="text-sm text-gray-600">
+                                Initializing...
+                            </p>
+                            <div id="refreshModalStats" class="mt-4 text-xs text-gray-500">
+                                <!-- Stats will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="refreshModalActions" class="mt-5 sm:mt-6 hidden">
+                    <button onclick="window.app.closeRefreshModal()" type="button" class="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/dist/ag-grid-community.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    
+    <!-- DuckDB WASM -->
+    <script type="module">
+        import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/+esm';
+        window.duckdb = duckdb;
+    </script>
+    
+    <!-- Application JavaScript -->
+    <script src="js/app-htmx.js?v=2025-02-12-last-updated-right-justify"></script>
+</body>
+</html>

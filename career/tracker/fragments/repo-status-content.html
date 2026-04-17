@@ -1,0 +1,54 @@
+<div class="space-y-6">
+    <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <div class="flex items-center justify-between gap-6">
+                <!-- Left: Title and Description -->
+                <div class="flex-shrink-0">
+                    <h3 class="text-lg font-semibold text-gray-900">Repository Status</h3>
+                    <p class="mt-1 text-sm text-gray-500">Monitor repository compliance and file requirements</p>
+                </div>
+                
+                <!-- Center: Summary Stats -->
+                <div id="repoStatusSummary" 
+                     class="hidden flex-1 flex items-center justify-center gap-6 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500">Repositories:</span>
+                        <span id="repoTotalCount" class="font-semibold text-gray-900">0</span>
+                    </div>
+                    <div class="h-4 w-px bg-gray-300"></div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500">Missing Profiles:</span>
+                        <span id="repoMissingProfiles" class="font-semibold text-red-600">0</span>
+                    </div>
+                    <div class="h-4 w-px bg-gray-300"></div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500">Missing Resumes:</span>
+                        <span id="repoMissingResumes" class="font-semibold text-amber-600">0</span>
+                    </div>
+                </div>
+                
+                <!-- Right: Actions -->
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <div id="selectedRepoCount" 
+                         class="rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-900">
+                        0 selected
+                    </div>
+                    <button onclick="window.app.reloadSelectedRepos()"
+                            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Reload Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div id="repoStatusGrid" class="ag-theme-alpine" style="height: 600px; width: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Editor Modal Container -->
+<div id="profileEditorModalContainer"></div>

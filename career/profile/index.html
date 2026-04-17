@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎓</text></svg>">
+
+    <title>YC CS Student Profile</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- js-yaml -->
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        code {
+            color: #dc2626;
+            font-size: 1.05em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-100" x-data="{ sidebarOpen: false, settingsOpen: false }">
+
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 z-50 h-screen w-64 -translate-x-full transform bg-white shadow-xl transition-transform duration-300 lg:translate-x-0"
+           :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+        <div class="flex h-full flex-col">
+
+            <!-- Logo -->
+            <div class="flex items-center gap-3 border-b border-gray-200 px-6 py-5">
+                <span class="text-3xl">🎓</span>
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800">YC CS Profile</h2>
+                    <p class="text-xs text-gray-500">Student Profile Manager</p>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 space-y-1 px-3 py-4">
+                <button id="profileEditorBtn"
+                        class="tab-button flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-white bg-blue-600 transition-colors"
+                        onclick="window.profile.navigateToProfileEditor()">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span>Profile Editor</span>
+                </button>
+                <button id="resumeUploadBtn"
+                        class="tab-button flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                        onclick="window.profile.navigateToResumeUpload()">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>Resume Upload</span>
+                </button>
+            </nav>
+
+            <!-- Settings Section at Bottom -->
+            <div class="border-t border-gray-200 p-3">
+                <button @click="settingsOpen = !settingsOpen"
+                        class="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>Settings</span>
+                    <svg class="ml-auto h-4 w-4 transition-transform" :class="settingsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <!-- Settings Dropdown -->
+                <div x-show="settingsOpen"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95"
+                     class="mt-2 space-y-1 pl-4">
+                    <button onclick="window.profile.loadSettingsForm()"
+                            class="flex w-full items-center gap-3 rounded-lg px-4 py-2 text-left text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                        </svg>
+                        <span>Change Settings</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div x-show="sidebarOpen"
+         @click="sidebarOpen = false"
+         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-40 bg-gray-900 bg-opacity-50 lg:hidden"></div>
+
+    <!-- Main Content -->
+    <div class="lg:pl-64">
+
+        <!-- Top Bar -->
+        <header class="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-gray-200 bg-white px-4 shadow-sm lg:px-8">
+            <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden">
+                <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+
+            <div class="flex flex-1 items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">YC CS Student Profile</h1>
+                    <p class="text-sm text-gray-500">Manage and check-in your career profile</p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div id="fileLastUpdated" class="hidden items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
+                        <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="fileLastUpdatedText" class="text-sm font-medium text-amber-900"></span>
+                    </div>
+                    <div id="profileFileBadge" class="hidden items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
+                        <svg class="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span id="fileBadgeText" class="text-sm font-medium text-blue-900">@yccs-tracker/profile.yml</span>
+                    </div>
+                    <div id="repoConnectionStatus" class="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2">
+                        <div class="h-2 w-2 rounded-full bg-gray-400"></div>
+                        <span class="text-sm font-medium text-gray-600">Not Connected</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="p-4 lg:p-4">
+            <div id="app-content">
+                <div class="flex items-center justify-center py-20">
+                    <div class="text-center">
+                        <div class="spinner"></div>
+                        <p class="mt-4 text-gray-600">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- Application JavaScript -->
+    <script src="js/profile.js"></script>
+</body>
+</html>

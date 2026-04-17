@@ -1,0 +1,335 @@
+<!-- Profile Editor Modal -->
+<div id="profileEditorModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black bg-opacity-50" onclick="if(event.target === event.currentTarget) window.app.closeProfileEditor()">
+    <div class="flex min-h-screen items-center justify-center p-4">
+        <div class="relative w-full max-w-2xl rounded-lg bg-white shadow-lg">
+            <!-- Header -->
+            <div class="border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h2 id="modalTitle" class="text-xl font-semibold text-gray-900">Add Profile</h2>
+                    <div class="flex items-center gap-1.5">
+                        <span id="modalLastUpdated" class="text-sm text-gray-700 hidden"></span>
+                        <button onclick="window.app.closeProfileEditor()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Content -->
+            <div class="max-h-[70vh] overflow-y-auto px-6 py-4">
+                <form id="profileEditorForm">
+                    <!-- YUID, First Name, Last Name (side by side) -->
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="form-group">
+                            <label for="modalYuid" class="block text-sm font-semibold text-gray-700 mb-2">YUID <span class="text-red-600">*</span></label>
+                            <input type="text" id="modalYuid" placeholder="800123456" maxlength="9" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalYuid-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalFirstName" class="block text-sm font-semibold text-gray-700 mb-2">First Name <span class="text-red-600">*</span></label>
+                            <input type="text" id="modalFirstName" placeholder="John" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalFirstName-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalLastName" class="block text-sm font-semibold text-gray-700 mb-2">Last Name <span class="text-red-600">*</span></label>
+                            <input type="text" id="modalLastName" placeholder="Doe" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalLastName-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- Graduation Year, CS Track, and Cell/WhatsApp (side by side) -->
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="form-group">
+                            <label for="modalGraduationYear" class="block text-sm font-semibold text-gray-700 mb-2">Graduation Year <span class="text-red-600">*</span></label>
+                            <input type="text" id="modalGraduationYear" placeholder="2026" maxlength="4" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalGraduationYear-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalCsTrack" class="block text-sm font-semibold text-gray-700 mb-2">CS Track <span class="text-red-600">*</span></label>
+                            <select id="modalCsTrack" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Select Track</option>
+                                <option value="AI">AI</option>
+                                <option value="DIS">DIS</option>
+                                <option value="BA">BA</option>
+                                <option value="N/A">N/A</option>
+                            </select>
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalCsTrack-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalWhatsapp" class="block text-sm font-semibold text-gray-700 mb-2">Cell/WhatsApp <span class="text-red-600">*</span></label>
+                            <input type="text" id="modalWhatsapp" placeholder="+1234567890" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="text-xs text-gray-500 mt-1 text-xs">Country code (e.g., +1, +44, +972)</div>
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalWhatsapp-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- YU Email and Preferred Email (side by side) -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="form-group">
+                            <label for="modalYuEmail" class="block text-sm font-semibold text-gray-700 mb-2">YU Email <span class="text-red-600">*</span></label>
+                            <input type="email" id="modalYuEmail" placeholder="name@mail.yu.edu" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalYuEmail-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalEmail" class="block text-sm font-semibold text-gray-700 mb-2">Preferred Email <span class="text-xs text-gray-500">(optional)</span></label>
+                            <input type="email" id="modalEmail" placeholder="name@example.com" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalEmail-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- Seeking and Job Status (side by side) -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="form-group">
+                            <label for="modalSeeking" class="block text-sm font-semibold text-gray-700 mb-2">Seeking <span class="text-red-600">*</span></label>
+                            <select id="modalSeeking" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Select an option</option>
+                                <option value="IN">Internship</option>
+                                <option value="FT">Full-Time</option>
+                                <option value="N/A">Not Looking</option>
+                            </select>
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalSeeking-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalJobStatus" class="block text-sm font-semibold text-gray-700 mb-2">Job Status <span class="text-red-600">*</span></label>
+                            <select id="modalJobStatus" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100" disabled>
+                                <option id="modalJobStatus_na_option" value="N/A">N/A</option>
+                                <option value="YES">I Have a Job</option>
+                                <option value="NO">No Job Yet</option>
+                            </select>
+                            <div class="text-xs text-red-600 mt-1 hidden" id="modalJobStatus-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- Company (conditional) -->
+                    <div class="mb-4">
+                        <label for="modalCompany" class="block text-sm font-semibold text-gray-700 mb-2">Company</label>
+                        <input type="text" id="modalCompany" placeholder="Company name" disabled value="N/A" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed">
+                        <div class="text-xs text-gray-500 mt-1">Only for "Have Job" status</div>
+                        <div class="text-xs text-red-600 mt-1 hidden" id="modalCompany-error"></div>
+                    </div>
+
+                    <!-- Internships -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Internships <span class="text-xs text-gray-500">(optional)</span></label>
+                        <div id="modalInternshipsList" class="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                        </div>
+                        <button type="button" class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium" onclick="window.app.addInternshipField()">+ Add Internship</button>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Footer with Buttons and Status Message -->
+            <div class="border-t border-gray-200 px-6 py-4 flex items-center gap-3">
+                <div id="modalStatusMessage" class="text-sm font-medium px-3 py-2 rounded-md hidden"></div>
+                <div class="flex gap-3 ml-auto">
+                    <button onclick="window.app.closeProfileEditor()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 text-sm font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button onclick="window.app.saveProfile()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium transition-colors">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Validation functions (copied from profile.html)
+    window.app.validateYUID = function(yuid) {
+        const yuidNum = parseInt(yuid);
+        if (isNaN(yuidNum)) return 'YUID must be a number';
+        if (yuid.length !== 9) return 'YUID must be exactly 9 digits';
+        if (!yuid.startsWith('800')) return 'YUID must start with 800';
+        return null;
+    };
+
+    window.app.validateName = function(name, fieldName) {
+        if (!name || name.trim() === '') return `${fieldName} is required`;
+        if (name.length < 2) return `${fieldName} must be at least 2 characters`;
+        if (!/^[a-zA-Z\s\-']+$/.test(name)) return `${fieldName} must contain only letters, spaces, hyphens, and apostrophes`;
+        return null;
+    };
+
+    window.app.validateGradYear = function(year) {
+        const yearNum = parseInt(year);
+        if (isNaN(yearNum)) return 'Graduation year must be a number';
+        if (yearNum < 2026) return 'Graduation year must be 2026 or later';
+        return null;
+    };
+
+    window.app.validateEmail = function(email) {
+        if (!email) return null; // Optional field
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) return 'Invalid email format';
+        return null;
+    };
+
+    window.app.validateYUEmail = function(email) {
+        if (!email.endsWith('@mail.yu.edu')) return 'Must be a @mail.yu.edu email address';
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@mail\.yu\.edu$/;
+        if (!emailRegex.test(email)) return 'Invalid YU email format';
+        return null;
+    };
+
+    window.app.formatWhatsApp = function(phone) {
+        let digitsOnly = phone.replace(/\D/g, '');
+        if (digitsOnly.length === 10) {
+            const areaCode = digitsOnly.slice(0, 3);
+            const firstPart = digitsOnly.slice(3, 6);
+            const secondPart = digitsOnly.slice(6, 10);
+            return `(${areaCode}) ${firstPart}-${secondPart}`;
+        }
+        if (digitsOnly.length > 10) {
+            return '+' + digitsOnly;
+        }
+        return '+' + digitsOnly;
+    };
+
+    window.app.validateWhatsApp = function(phone) {
+        if (!phone || phone.trim() === '') return 'WhatsApp number is required';
+        const digitsOnly = phone.replace(/[^\d]/g, '');
+        if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+            return 'Phone number must be between 7 and 15 digits';
+        }
+        const isUSFormat = /^\(\d{3}\)\s\d{3}-\d{4}$/.test(phone);
+        const isInternational = /^\+\d{7,15}$/.test(phone);
+        if (!isUSFormat && !isInternational) {
+            return 'Invalid phone number format. Use (123) 456-7890 or +[country code][number]';
+        }
+        return null;
+    };
+
+    window.app.validateInternshipYear = function(year) {
+        if (!year) return 'Year is required';
+        if (!/^\d{4}$/.test(year)) {
+            return 'Year must be exactly 4 digits';
+        }
+        const currentYear = new Date().getFullYear();
+        const yearNum = parseInt(year);
+        if (yearNum > currentYear) {
+            return `Year cannot be in the future (current year is ${currentYear})`;
+        }
+        if (yearNum < 1900) {
+            return 'Year must be 1900 or later';
+        }
+        return null;
+    };
+
+    window.app.capitalizeFirstLetter = function(str) {
+        if (!str) return '';
+        return str.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        ).join(' ');
+    };
+
+    window.app.capitalizeFirstLetterOnly = function(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+
+    // Internship management
+    let modalInternshipCount = 0;
+
+    window.app.addInternshipField = function() {
+        const container = document.getElementById('modalInternshipsList');
+        const id = modalInternshipCount++;
+        const currentYear = new Date().getFullYear();
+        
+        const field = document.createElement('div');
+        field.className = 'flex gap-2 internship-field items-end';
+        field.id = `modal-internship-${id}`;
+        field.innerHTML = `
+            <input type="text" placeholder="Year (e.g., ${currentYear})" maxlength="4" class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm modal-internship-year focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <input type="text" placeholder="Company" class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm modal-internship-company focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <button type="button" class="px-3 py-2 text-red-600 hover:text-red-800 text-sm font-medium transition-colors" onclick="window.app.removeInternshipField(${id})">Remove</button>
+        `;
+        container.appendChild(field);
+    };
+
+    window.app.removeInternshipField = function(id) {
+        const field = document.getElementById(`modal-internship-${id}`);
+        if (field) field.remove();
+    };
+
+    // Clear form
+    window.app.clearProfileEditorForm = function() {
+        document.getElementById('profileEditorForm').reset();
+        document.getElementById('modalInternshipsList').innerHTML = '';
+        modalInternshipCount = 0;
+        document.getElementById('modalJobStatus').disabled = true;
+        document.getElementById('modalJobStatus').value = 'N/A';
+        document.getElementById('modalCompany').disabled = true;
+        document.getElementById('modalCompany').value = 'N/A';
+        document.getElementById('modalTimestampInfo')?.classList.add('hidden');
+        document.getElementById('modalLastUpdated').classList.add('hidden');
+        document.getElementById('modalLastUpdated').textContent = '';
+        
+        // Hide and clear status badge
+        const statusEl = document.getElementById('modalStatusMessage');
+        if (statusEl) {
+            statusEl.classList.add('hidden');
+            statusEl.textContent = '';
+            statusEl.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+        }
+        
+        // Clear any pending status message timeout
+        if (window.app._statusMessageTimeout) {
+            clearTimeout(window.app._statusMessageTimeout);
+            window.app._statusMessageTimeout = null;
+        }
+        
+        // Clear error messages
+        document.querySelectorAll('#profileEditorModal .text-red-600[id$="-error"]').forEach(el => {
+            el.classList.add('hidden');
+        });
+    };
+
+    // Setup seeking change handler
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.id === 'modalSeeking') {
+            const seekingValue = e.target.value;
+            const jobStatusSelect = document.getElementById('modalJobStatus');
+            const companyInput = document.getElementById('modalCompany');
+            const naOption = document.getElementById('modalJobStatus_na_option');
+            
+            if (seekingValue === 'N/A' || seekingValue === '') {
+                jobStatusSelect.disabled = true;
+                jobStatusSelect.value = 'N/A';
+                naOption.style.display = '';
+                companyInput.disabled = true;
+                companyInput.value = 'N/A';
+            } else if (seekingValue === 'IN' || seekingValue === 'FT') {
+                jobStatusSelect.disabled = false;
+                naOption.style.display = 'none';
+                if (jobStatusSelect.value === 'N/A') {
+                    jobStatusSelect.value = '';
+                }
+            }
+        }
+        
+        if (e.target && e.target.id === 'modalJobStatus') {
+            const jobStatusValue = e.target.value;
+            const companyInput = document.getElementById('modalCompany');
+            if (jobStatusValue === 'YES') {
+                companyInput.disabled = false;
+                companyInput.value = '';
+                companyInput.required = true;
+            } else {
+                companyInput.disabled = true;
+                companyInput.value = 'N/A';
+                companyInput.required = false;
+            }
+        }
+    });
+
+    // Format WhatsApp on blur
+    document.addEventListener('blur', function(e) {
+        if (e.target && e.target.id === 'modalWhatsapp' && e.target.value.trim()) {
+            e.target.value = window.app.formatWhatsApp(e.target.value);
+        }
+    }, true);
+</script>

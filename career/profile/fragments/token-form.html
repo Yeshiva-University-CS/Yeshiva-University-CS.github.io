@@ -1,0 +1,35 @@
+<div id="tokenFormSection">
+    <h2 class="text-lg font-semibold text-gray-800 mb-2">Connect Your GitHub Account</h2>
+    <p class="text-sm text-gray-600 mb-5">
+        To load and save your profile, you need a GitHub Personal Access Token with <code>repo</code> scope.
+        Your token is stored only in this browser — it is never sent to any server other than GitHub.
+    </p>
+
+    <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">GitHub Personal Access Token</label>
+        <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx or github_pat_xxxxxxxxxxxx"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        <p class="text-xs text-gray-500 mt-2">
+            <a href="https://github.com/settings/tokens/new?scopes=repo&description=YU%20Career%20Profile%20Generator"
+               target="_blank" class="text-blue-600 hover:underline">Create a new token</a>
+            with <code>repo</code> scope.
+        </p>
+        <div id="tokenError" class="text-xs text-red-600 mt-1 hidden"></div>
+    </div>
+
+    <!-- How-to steps -->
+    <div class="bg-gray-50 border border-gray-200 rounded-md p-4 mb-5 text-sm text-gray-600">
+        <p class="font-semibold text-gray-700 mb-2">How to create a token:</p>
+        <ol class="list-decimal list-inside space-y-1">
+            <li>Click the link above to open GitHub token settings</li>
+            <li>Set the expiration to at least 90 days</li>
+            <li>Make sure <code>repo</code> is checked under <strong>Select scopes</strong></li>
+            <li>Click <strong>Generate token</strong> and copy it here</li>
+        </ol>
+    </div>
+
+    <button onclick="window.profile.saveToken()"
+            class="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium text-sm transition-colors">
+        Connect GitHub Account
+    </button>
+</div>

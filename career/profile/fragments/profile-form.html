@@ -1,0 +1,174 @@
+<!-- Profile File Status (errors/not-found only; success shown in top bar) -->
+<div id="profileFileStatus" class="text-sm mb-4 hidden"></div>
+
+<!-- Profile Form -->
+<form id="profileForm">
+
+    <!-- Two-column layout: left=1/2, right=1/3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-10 gap-6">
+
+        <!-- LEFT: Personal Info + Job Status (spans 2 cols) -->
+        <div class="lg:col-span-5 space-y-4">
+
+            <!-- YUID / First Name / Last Name -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label for="yuid" class="block text-sm font-semibold text-gray-700 mb-2">
+                        YUID <span class="text-red-600">*</span>
+                    </label>
+                    <input type="text" id="yuid" placeholder="800123456" maxlength="9"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-xs text-red-600 mt-1 hidden" id="yuid-error"></div>
+                </div>
+                <div>
+                    <label for="first_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        First Name <span class="text-red-600">*</span>
+                    </label>
+                    <input type="text" id="first_name" placeholder="John"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-xs text-red-600 mt-1 hidden" id="first_name-error"></div>
+                </div>
+                <div>
+                    <label for="last_name" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Last Name <span class="text-red-600">*</span>
+                    </label>
+                    <input type="text" id="last_name" placeholder="Doe"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-xs text-red-600 mt-1 hidden" id="last_name-error"></div>
+                </div>
+            </div>
+
+            <!-- Cell/WhatsApp / YU Email / Preferred Email -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label for="whatsapp" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Cell/WhatsApp <span class="text-red-600">*</span>
+                    </label>
+                    <input type="text" id="whatsapp" placeholder="2129605400"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-xs text-gray-500 mt-1">Foreign number use country code (+44, +972)</div>
+                    <div class="text-xs text-red-600 mt-1 hidden" id="whatsapp-error"></div>
+                </div>
+                <div>
+                    <label for="yu_email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        YU Email <span class="text-red-600">*</span>
+                    </label>
+                    <input type="email" id="yu_email" placeholder="student@mail.yu.edu"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-xs text-gray-500 mt-1">Must be @mail.yu.edu</div>
+                    <div class="text-xs text-red-600 mt-1 hidden" id="yu_email-error"></div>
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Preferred Email <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                    </label>
+                    <input type="email" id="email" placeholder="student@example.com"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-xs text-red-600 mt-1 hidden" id="email-error"></div>
+                </div>
+            </div>
+
+            <!-- Graduation Year / CS Track -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="graduation_year" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Graduation Year <span class="text-red-600">*</span>
+                    </label>
+                    <input type="text" id="graduation_year" placeholder="2026" maxlength="4"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <div class="text-xs text-gray-500 mt-1">Must be 2026 or later</div>
+                    <div class="text-xs text-red-600 mt-1 hidden" id="graduation_year-error"></div>
+                </div>
+                <div>
+                    <label for="cs_track" class="block text-sm font-semibold text-gray-700 mb-2">
+                        CS Track <span class="text-red-600">*</span>
+                    </label>
+                    <select id="cs_track"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select a track...</option>
+                        <option value="AI">AI - Artificial Intelligence</option>
+                        <option value="DIS">DIS - Distributed Systems</option>
+                        <option value="BA">BA - 3-Year Program</option>
+                        <option value="None">Non CS Major</option>
+                    </select>
+                    <div class="text-xs text-red-600 mt-1 hidden" id="cs_track-error"></div>
+                </div>
+            </div>
+
+            <!-- Seeking / Job Status -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="seeking" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Seeking <span class="text-red-600">*</span>
+                    </label>
+                    <select id="seeking"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select what you're seeking...</option>
+                        <option value="IN">Internship</option>
+                        <option value="FT">Full-Time</option>
+                        <option value="N/A">(Not Looking)</option>
+                    </select>
+                    <div class="text-xs text-red-600 mt-1 hidden" id="seeking-error"></div>
+                </div>
+                <div>
+                    <label for="job_status" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Job Status <span class="text-red-600">*</span>
+                    </label>
+                    <select id="job_status" disabled
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed">
+                        <option id="job_status_na_option" value="N/A">N/A</option>
+                        <option value="">Select job status...</option>
+                        <option value="YES">I Have a Job</option>
+                        <option value="NO">No Job Yet</option>
+                    </select>
+                    <div class="text-xs text-red-600 mt-1 hidden" id="job_status-error"></div>
+                </div>
+            </div>
+
+            <!-- Company (conditional) -->
+            <div>
+                <label for="company" class="block text-sm font-semibold text-gray-700 mb-2">Company</label>
+                <input type="text" id="company" placeholder="Company name" disabled value="N/A"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed">
+                <div class="text-xs text-gray-500 mt-1">Only for "I Have a Job" status</div>
+                <div class="text-xs text-red-600 mt-1 hidden" id="company-error"></div>
+            </div>
+
+            <!-- Action Buttons (left-column width only) -->
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="window.profile.validateProfile()"
+                        class="flex-1 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-semibold transition-colors">
+                    ✓ Validate Profile
+                </button>
+                <button type="button" id="checkinBtn" onclick="window.profile.checkinProfile()"
+                        class="flex-1 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600">
+                    ✓ Check-in Profile
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Spacer (1/5) -->
+        <div class="hidden lg:block"></div>
+
+        <!-- RIGHT: Internships (2/6) -->
+        <div class="lg:col-span-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Internships <span class="text-xs text-gray-500 font-normal">(optional)</span>
+            </label>
+            <div id="internshipsList" class="space-y-2 mb-3"></div>
+            <button type="button" onclick="window.profile.addInternship()"
+                    class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium">
+                + Add Internship
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Validation Results -->
+    <div id="validationResults" class="hidden mt-4 p-4 rounded-md text-sm"></div>
+
+    <!-- YAML Preview -->
+    <pre id="yamlPreview" class="hidden mt-4 bg-gray-900 text-green-300 p-4 rounded-md text-xs overflow-auto max-h-64 whitespace-pre-wrap"></pre>
+
+</form>

@@ -1,0 +1,113 @@
+<div class="rounded-lg bg-white p-8 shadow-lg">
+    <div class="mx-auto max-w-2xl">
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">GitHub Settings</h2>
+            <p class="mt-2 text-sm text-gray-600">Connect your GitHub account and link your YU repository to load and save your profile.</p>
+        </div>
+
+        <!-- Status banner (hidden by default, shown on error/success) -->
+        <div id="settingsStatus" class="mb-6 hidden rounded-lg border p-4">
+            <div class="flex items-center gap-3">
+                <svg class="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="settingsStatusText" class="text-sm font-medium"></span>
+            </div>
+        </div>
+
+        <!-- Inputs -->
+        <div class="space-y-6">
+
+            <!-- Token Input -->
+            <div>
+                <label for="githubToken" class="block text-sm font-medium text-gray-900">
+                    GitHub Personal Access Token
+                </label>
+                <div class="mt-2">
+                    <input type="password"
+                           id="githubToken"
+                           placeholder="ghp_... or github_pat_..."
+                           class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 transition-colors focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div class="mt-2 flex items-start gap-2 rounded-md bg-blue-50 p-3">
+                    <svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <p class="text-xs text-blue-800">
+                        Token is stored only in your browser's local storage — never sent to any server other than GitHub.
+                        <br>
+                        <span class="font-medium">Required permission:</span> <code class="rounded bg-blue-100 px-1 py-0.5">repo</code> scope.
+                    </p>
+                </div>
+                <div id="tokenError" class="text-xs text-red-600 mt-1 hidden"></div>
+            </div>
+
+            <!-- Repo Name Input -->
+            <div>
+                <label for="repoName" class="block text-sm font-medium text-gray-900">
+                    Repository Name
+                </label>
+                <div class="mt-2">
+                    <input type="text"
+                           id="repoName"
+                           placeholder="FirstName_LastName_800XXXXXX"
+                           class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 placeholder-gray-400 transition-colors focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <p class="mt-2 text-xs text-gray-500">
+                    Format: <code>FirstName_LastName_800XXXXXX</code> (e.g., <code>John_Doe_800123456</code>)
+                </p>
+                <div id="repoError" class="text-xs text-red-600 mt-1 hidden"></div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col gap-3 sm:flex-row">
+                <button onclick="window.profile.saveSettings()"
+                        class="flex-1 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        Save Settings &amp; Load Profile
+                    </span>
+                </button>
+
+                <button id="disconnectBtn"
+                        onclick="window.profile.disconnectAccount()"
+                        class="hidden flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 sm:flex-initial">
+                    <span class="flex items-center justify-center gap-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Disconnect
+                    </span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <h3 class="mb-3 text-sm font-semibold text-gray-900">How to set up:</h3>
+            <ol class="space-y-2 text-sm text-gray-700">
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">1</span>
+                    <span>Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">2</span>
+                    <span>Click "Generate new token (classic)", set expiration to at least 90 days, enable the <code>repo</code> scope</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">3</span>
+                    <span>Your repo name format: <code>FirstName_LastName_800XXXXXX</code> — find it on your GitHub profile under <code>Yeshiva-University-CS</code></span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs text-white">4</span>
+                    <span>Paste your token and repo name above, then click "Save Settings &amp; Load Profile"</span>
+                </li>
+            </ol>
+        </div>
+
+    </div>
+</div>
