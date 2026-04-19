@@ -729,6 +729,60 @@
             let sha = null;
             let fileExists = false;
 
+            // Ensure yccs-tracker orphan branch exists; creates it if missing
+            async function ensureBranchExists() {
+                const branchResp = await fetch(
+                    `https://api.github.com/repos/Yeshiva-University-CS/${repo}/git/ref/heads/yccs-tracker`,
+                    { headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' } }
+                );
+                if (branchResp.ok) return; // already exists
+                if (branchResp.status !== 404) {
+                    const err = await branchResp.json();
+                    throw new Error(`Error checking branch: ${err.message || branchResp.status}`);
+                }
+
+                // Branch missing — create orphan branch
+                if (resultsDiv) resultsDiv.innerHTML = '<p>⏳ Creating yccs-tracker branch...</p>';
+                const base = `https://api.github.com/repos/Yeshiva-University-CS/${repo}`;
+                const readmeContent = [
+                    '## This branch is used by the YC CS Career Tracking tool',
+                    '',
+                    '### Use the YC CS Student Profile generation tool to create and manage your profile and to upload your resume',
+                    '',
+                    '### You are responsible to keep this information updated',
+                    '',
+                    '### [https://yeshiva-university-cs.github.io/career/profile/](https://yeshiva-university-cs.github.io/career/profile/)'
+                ].join('\n');
+
+                // 1. Tree with README.md
+                const treeResp = await fetch(`${base}/git/trees`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tree: [{ path: 'README.md', mode: '100644', type: 'blob', content: readmeContent }] })
+                });
+                if (!treeResp.ok) { const e = await treeResp.json(); throw new Error(`Failed to create tree: ${e.message || treeResp.status}`); }
+                const treeSha = (await treeResp.json()).sha;
+
+                // 2. Parentless commit
+                const commitResp = await fetch(`${base}/git/commits`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'Initialize yccs-tracker branch', tree: treeSha, parents: [] })
+                });
+                if (!commitResp.ok) { const e = await commitResp.json(); throw new Error(`Failed to create commit: ${e.message || commitResp.status}`); }
+                const commitSha = (await commitResp.json()).sha;
+
+                // 3. Create branch ref
+                const refResp = await fetch(`${base}/git/refs`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ref: 'refs/heads/yccs-tracker', sha: commitSha })
+                });
+                if (!refResp.ok) { const e = await refResp.json(); throw new Error(`Failed to create branch: ${e.message || refResp.status}`); }
+
+                if (resultsDiv) resultsDiv.innerHTML = '<p>⏳ Branch created — checking in profile...</p>';
+            }
+
             // Try to get SHA from git tree (handles raw-content CDN responses reliably)
             async function getShaFromTree(repoName) {
                 try {
@@ -770,6 +824,7 @@
                 }
             } else if (getResp.status === 404) {
                 fileExists = false;
+                await ensureBranchExists();
             } else {
                 const txt = await getResp.text();
                 throw new Error(`Unexpected status fetching profile metadata: ${getResp.status} ${txt}`);
