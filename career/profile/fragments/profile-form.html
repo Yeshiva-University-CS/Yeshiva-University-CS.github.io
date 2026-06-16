@@ -4,7 +4,11 @@
 <!-- Profile Form -->
 <form id="profileForm">
 
-    <!-- Two-column layout: left=1/2, right=1/3 -->
+    <!-- Two-column layout: left=1/2, right=1/3. Left and right are each a SINGLE grid item
+         managing their own internal vertical flow (space-y-4 / margins) — they must never be
+         split into multiple items sharing row tracks with the other column, since growing one
+         column's shared row stretches every item in that row and pushes the other column's
+         later content down. -->
     <div class="grid grid-cols-1 lg:grid-cols-10 gap-6">
 
         <!-- LEFT: Personal Info + Job Status (spans 2 cols) -->
@@ -151,7 +155,11 @@
         <!-- Spacer (1/5) -->
         <div class="hidden lg:block"></div>
 
-        <!-- RIGHT: Internships (2/6) -->
+        <!-- RIGHT: Internships + Graduate Schools (2/6). A single independent column —
+             growing internshipsList/graduateSchoolsList only adds height here, never to
+             the left column. Graduate Schools keeps a fixed top margin (mt-28) approximating
+             the Graduation Year row's vertical position, since the two columns no longer
+             share row tracks. -->
         <div class="lg:col-span-4">
             <label class="block text-sm font-semibold text-gray-700 mb-2">
                 Internships <span class="text-xs text-gray-500 font-normal">(optional)</span>
@@ -161,6 +169,18 @@
                     class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium">
                 + Add Internship
             </button>
+
+            <!-- Graduate Schools -->
+            <div class="mt-28">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    Graduate Schools <span class="text-xs text-gray-500 font-normal">(optional)</span>
+                </label>
+                <div id="graduateSchoolsList" class="space-y-2 mb-3"></div>
+                <button type="button" onclick="window.profile.addGraduateSchool()"
+                        class="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors font-medium">
+                    + Add Graduate School
+                </button>
+            </div>
         </div>
 
     </div>

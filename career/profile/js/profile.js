@@ -5,6 +5,7 @@
     // State
     // ---------------------------------------------------------------------------
     let internshipCount = 0;
+    let graduateSchoolCount = 0;
     let originalLoadedData = null;
     const currentYear = new Date().getFullYear();
 
@@ -43,6 +44,7 @@
         localStorage.removeItem('github_repo');
         originalLoadedData = null;
         internshipCount = 0;
+        graduateSchoolCount = 0;
         updateConnectionStatus(null);
         updateProfileFileBadge(false);
         loadSettingsForm();
@@ -255,6 +257,11 @@
         if (internshipsList) internshipsList.innerHTML = '';
         internshipCount = 0;
 
+        // Clear existing graduate schools
+        const graduateSchoolsList = document.getElementById('graduateSchoolsList');
+        if (graduateSchoolsList) graduateSchoolsList.innerHTML = '';
+        graduateSchoolCount = 0;
+
         // Basic fields
         setVal('yuid', data.yuid);
         setVal('first_name', data.first_name ? capitalizeFirstLetter(data.first_name) : '');
@@ -305,6 +312,13 @@
             }
         }
 
+        // Graduate Schools
+        if (data.graduate_schools) {
+            for (const school of data.graduate_schools) {
+                addGraduateSchool(school.name, school.status);
+            }
+        }
+
         // Disable check-in until changes are detected
         const checkinBtn = document.getElementById('checkinBtn');
         if (checkinBtn) checkinBtn.disabled = true;
@@ -322,6 +336,9 @@
         const internshipsList = document.getElementById('internshipsList');
         if (internshipsList) internshipsList.innerHTML = '';
         internshipCount = 0;
+        const graduateSchoolsList = document.getElementById('graduateSchoolsList');
+        if (graduateSchoolsList) graduateSchoolsList.innerHTML = '';
+        graduateSchoolCount = 0;
         originalLoadedData = null;
 
         const companyInput = document.getElementById('company');
@@ -352,6 +369,10 @@
         if (internshipsList) {
             new MutationObserver(checkForChanges).observe(internshipsList, { childList: true, subtree: true });
         }
+        const graduateSchoolsList = document.getElementById('graduateSchoolsList');
+        if (graduateSchoolsList) {
+            new MutationObserver(checkForChanges).observe(graduateSchoolsList, { childList: true, subtree: true });
+        }
     }
 
     function checkForChanges() {
@@ -364,7 +385,10 @@
         const currentData = getFormData();
         const currentEntryCount = document.querySelectorAll('.internship-entry').length;
         const originalFilledCount = originalLoadedData.internships ? Object.keys(originalLoadedData.internships).length : 0;
-        const hasChanges = currentEntryCount !== originalFilledCount || JSON.stringify(currentData) !== JSON.stringify(originalLoadedData);
+        const currentGsCount = document.querySelectorAll('.graduate-school-entry').length;
+        const originalGsCount = originalLoadedData.graduate_schools ? originalLoadedData.graduate_schools.length : 0;
+        const hasChanges = currentEntryCount !== originalFilledCount || currentGsCount !== originalGsCount
+            || JSON.stringify(currentData) !== JSON.stringify(originalLoadedData);
         checkinBtn.disabled = !hasChanges;
     }
 
@@ -427,6 +451,85 @@
         } else {
             yearInput.classList.remove('border-red-500');
             yearError.classList.add('hidden');
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Graduate School Management
+    // ---------------------------------------------------------------------------
+    function addGraduateSchool(prefillName, prefillStatus) {
+        const list = document.getElementById('graduateSchoolsList');
+        if (!list) return;
+        const id = graduateSchoolCount++;
+        const div = document.createElement('div');
+        div.className = 'flex gap-2 graduate-school-entry items-start';
+        div.id = `graduate-school-${id}`;
+        div.innerHTML = `
+            <div class="flex-[3]">
+                <input type="text" placeholder="School name"
+                       value="${prefillName || ''}"
+                       class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm gs-name focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <div class="text-xs text-red-600 mt-1 hidden gs-name-error"></div>
+            </div>
+            <div class="flex-1">
+                <select class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm gs-status focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <option value="Pending">Pending</option>
+                    <option value="Accepted">Accepted</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Registered">Registered</option>
+                </select>
+            </div>
+            <button type="button" onclick="window.profile.removeGraduateSchool(${id})"
+                    class="px-2 py-1.5 text-red-600 hover:text-red-800 text-xs font-medium transition-colors mt-0.5">
+                ✕
+            </button>
+        `;
+        list.appendChild(div);
+
+        const statusSelect = div.querySelector('.gs-status');
+        statusSelect.value = prefillStatus || 'Pending';
+
+        // Registered exclusivity: selecting Registered demotes any other Registered entry to Accepted
+        statusSelect.addEventListener('change', function () {
+            if (this.value === 'Registered') {
+                document.querySelectorAll('.graduate-school-entry .gs-status').forEach(sel => {
+                    if (sel !== this && sel.value === 'Registered') sel.value = 'Accepted';
+                });
+            }
+        });
+
+        // Real-time name validation
+        div.querySelector('.gs-name').addEventListener('blur', function () {
+            validateGraduateSchoolNameField(div);
+        });
+    }
+
+    function removeGraduateSchool(id) {
+        const el = document.getElementById(`graduate-school-${id}`);
+        if (el) el.remove();
+    }
+
+    function validateGraduateSchoolNameField(div) {
+        const nameInput = div.querySelector('.gs-name');
+        const nameError = div.querySelector('.gs-name-error');
+        if (!nameInput || !nameError) return;
+        const name = nameInput.value.trim();
+        if (!name) {
+            nameInput.classList.remove('border-red-500');
+            nameError.classList.add('hidden');
+            return;
+        }
+        const otherNames = Array.from(document.querySelectorAll('.graduate-school-entry'))
+            .filter(entry => entry !== div)
+            .map(entry => entry.querySelector('.gs-name')?.value.trim().toLowerCase() || '');
+        const err = otherNames.includes(name.toLowerCase()) ? 'Graduate school name must be unique' : null;
+        if (err) {
+            nameInput.classList.add('border-red-500');
+            nameError.textContent = err;
+            nameError.classList.remove('hidden');
+        } else {
+            nameInput.classList.remove('border-red-500');
+            nameError.classList.add('hidden');
         }
     }
 
@@ -499,6 +602,9 @@
             el.textContent = '';
         });
         document.querySelectorAll('.internship-year-error, .internship-company-error').forEach(el => {
+            el.classList.add('hidden');
+        });
+        document.querySelectorAll('.gs-name-error, .gs-status-error').forEach(el => {
             el.classList.add('hidden');
         });
 
@@ -621,6 +727,52 @@
             }
         });
 
+        // Graduate Schools
+        const seenSchoolNames = [];
+        let registeredCount = 0;
+        document.querySelectorAll('.graduate-school-entry').forEach((entry, index) => {
+            const nameInput = entry.querySelector('.gs-name');
+            const statusSelect = entry.querySelector('.gs-status');
+            const nameErrorEl = entry.querySelector('.gs-name-error');
+            const statusErrorEl = entry.querySelector('.gs-status-error');
+            const name = nameInput?.value.trim() || '';
+            const status = statusSelect?.value || '';
+
+            if (!name && nameErrorEl) {
+                errors.push(`Graduate School #${index + 1}: Name is required`);
+                nameInput?.classList.add('border-red-500');
+                nameErrorEl.textContent = 'Name is required';
+                nameErrorEl.classList.remove('hidden');
+                isValid = false;
+            } else if (name) {
+                const lower = name.toLowerCase();
+                if (seenSchoolNames.includes(lower)) {
+                    errors.push(`Graduate School #${index + 1}: Name must be unique`);
+                    nameInput?.classList.add('border-red-500');
+                    if (nameErrorEl) {
+                        nameErrorEl.textContent = 'Graduate school name must be unique';
+                        nameErrorEl.classList.remove('hidden');
+                    }
+                    isValid = false;
+                }
+                seenSchoolNames.push(lower);
+            }
+
+            if (!status && statusErrorEl) {
+                errors.push(`Graduate School #${index + 1}: Status is required`);
+                statusSelect?.classList.add('border-red-500');
+                statusErrorEl.textContent = 'Status is required';
+                statusErrorEl.classList.remove('hidden');
+                isValid = false;
+            }
+
+            if (status === 'Registered') registeredCount++;
+        });
+        if (registeredCount > 1) {
+            errors.push('Only one graduate school may be marked as Registered.');
+            isValid = false;
+        }
+
         return { isValid, errors };
     }
 
@@ -659,6 +811,14 @@
         });
         if (Object.keys(internships).length > 0) data.internships = internships;
 
+        const graduateSchools = [];
+        document.querySelectorAll('.graduate-school-entry').forEach(entry => {
+            const name = entry.querySelector('.gs-name')?.value.trim() || '';
+            const status = entry.querySelector('.gs-status')?.value || '';
+            if (name) graduateSchools.push({ name, status });
+        });
+        if (graduateSchools.length > 0) data.graduate_schools = graduateSchools;
+
         return data;
     }
 
@@ -682,6 +842,13 @@
             yaml += '  internships:\n';
             for (const [year, company] of Object.entries(data.internships)) {
                 yaml += `    "${year}": "${company}"\n`;
+            }
+        }
+        if (data.graduate_schools && data.graduate_schools.length > 0) {
+            yaml += '  graduate_schools:\n';
+            for (const school of data.graduate_schools) {
+                yaml += `    - name: "${school.name}"\n`;
+                yaml += `      status: "${school.status}"\n`;
             }
         }
         return yaml;
@@ -1526,6 +1693,8 @@
         checkinProfile,
         addInternship,
         removeInternship,
+        addGraduateSchool,
+        removeGraduateSchool,
         handleResumeDrop,
         handleResumeFileSelect,
         clearResumeFile,

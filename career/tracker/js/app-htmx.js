@@ -435,6 +435,16 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
             await conn.query(`CREATE INDEX IF NOT EXISTS idx_internships_yuid ON internships(yuid)`);
 
+            await conn.query(`
+                CREATE TABLE IF NOT EXISTS graduate_schools(
+                    yuid INTEGER,
+                    name TEXT,
+                    status TEXT
+                )
+            `);
+
+            await conn.query(`CREATE INDEX IF NOT EXISTS idx_graduate_schools_yuid ON graduate_schools(yuid)`);
+
             console.log('DuckDB tables created successfully');
             return true;
         } catch (error) {
@@ -689,6 +699,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             await conn.query('DELETE FROM profiles_raw');
             await conn.query('DELETE FROM profiles');
             await conn.query('DELETE FROM internships');
+            await conn.query('DELETE FROM graduate_schools');
 
             // Try to load from consolidated profile_data.json
             console.log('Loading from consolidated profile data...');
@@ -1120,6 +1131,16 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     const companyEsc = company.replace(/'/g, "''");
                     await conn.query(`
                         INSERT INTO internships VALUES (${profile.yuid}, ${parseInt(year)}, '${companyEsc}')
+                    `);
+                }
+            }
+
+            if (profile.graduate_schools && profile.yuid) {
+                for (const school of profile.graduate_schools) {
+                    const nameEsc = (school.name || '').replace(/'/g, "''");
+                    const statusEsc = (school.status || '').replace(/'/g, "''");
+                    await conn.query(`
+                        INSERT INTO graduate_schools VALUES (${profile.yuid}, '${nameEsc}', '${statusEsc}')
                     `);
                 }
             }
@@ -2519,7 +2540,16 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 }
                 console.log('✅ Internships populated');
             }
-            
+
+            // Populate graduate schools
+            if (profile.graduate_schools && Array.isArray(profile.graduate_schools)) {
+                console.log('Graduate schools found:', profile.graduate_schools);
+                for (const school of profile.graduate_schools) {
+                    window.app.addGraduateSchoolField(school.name, school.status);
+                }
+                console.log('✅ Graduate schools populated');
+            }
+
             // Show last updated badge
             if (profileEntry.lastUpdated) {
                 const lastUpdatedSpan = document.getElementById('modalLastUpdated');
@@ -2693,7 +2723,40 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 }
             }
         });
-        
+
+        // Validate graduate schools
+        const seenSchoolNames = [];
+        let registeredCount = 0;
+        const graduateSchoolFields = document.querySelectorAll('#modalGraduateSchoolsList .graduate-school-field');
+        graduateSchoolFields.forEach((field, index) => {
+            const nameInput = field.querySelector('.modal-gs-name');
+            const statusSelect = field.querySelector('.modal-gs-status');
+            const name = nameInput.value.trim();
+            const status = statusSelect.value;
+
+            if (!name) {
+                errors.push(`Graduate School ${index + 1}: Name is required`);
+                nameInput.classList.add('border-red-500');
+            } else {
+                const lower = name.toLowerCase();
+                if (seenSchoolNames.includes(lower)) {
+                    errors.push(`Graduate School ${index + 1}: Name must be unique`);
+                    nameInput.classList.add('border-red-500');
+                }
+                seenSchoolNames.push(lower);
+            }
+
+            if (!status) {
+                errors.push(`Graduate School ${index + 1}: Status is required`);
+                statusSelect.classList.add('border-red-500');
+            }
+
+            if (status === 'Registered') registeredCount++;
+        });
+        if (registeredCount > 1) {
+            errors.push('Only one graduate school may be marked as Registered.');
+        }
+
         return { isValid: errors.length === 0, errors };
     };
 
@@ -2730,7 +2793,18 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         if (Object.keys(internships).length > 0) {
             data.internships = internships;
         }
-        
+
+        const graduateSchools = [];
+        const graduateSchoolFields = document.querySelectorAll('#modalGraduateSchoolsList .graduate-school-field');
+        graduateSchoolFields.forEach(field => {
+            const name = field.querySelector('.modal-gs-name').value.trim();
+            const status = field.querySelector('.modal-gs-status').value;
+            if (name) graduateSchools.push({ name, status });
+        });
+        if (graduateSchools.length > 0) {
+            data.graduate_schools = graduateSchools;
+        }
+
         return data;
     };
 
@@ -2891,9 +2965,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             const successMessage = currentEditingAction === 'edit' ? 'Profile updated successfully!' : 'Profile added successfully!';
             window.app.showModalStatusMessage(successMessage, true, 1000);
             
-            // Reload the Repository Status tab to show updated data
+            // Reload data to reflect the saved override
             setTimeout(() => {
-                window.app.switchTab('repos', 2026);
+                window.app.loadData();
             }, 1100);
         } catch (error) {
             console.error('Error saving profile:', error);
