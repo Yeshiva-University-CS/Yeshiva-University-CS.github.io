@@ -250,6 +250,10 @@
     // Form Population
     // ---------------------------------------------------------------------------
     function populateForm(data) {
+        // Normalize legacy N/A → None before cloning for change detection
+        if (data.seeking === 'N/A') data.seeking = 'None';
+        if (data.job_status === 'N/A') data.job_status = 'None';
+
         originalLoadedData = JSON.parse(JSON.stringify(data));
 
         // Clear existing internships
@@ -276,19 +280,19 @@
         // Job status
         const jobStatusSelect = document.getElementById('job_status');
         if (jobStatusSelect) {
-            if (data.seeking === 'N/A' || !data.seeking) {
+            if (data.seeking === 'None' || !data.seeking) {
                 jobStatusSelect.disabled = true;
-                jobStatusSelect.value = 'N/A';
+                jobStatusSelect.value = 'None';
             } else if (data.seeking === 'IN' || data.seeking === 'FT') {
                 jobStatusSelect.disabled = false;
                 jobStatusSelect.value = data.job_status || '';
                 if (!data.job_status) {
                     jobStatusSelect.disabled = true;
-                    jobStatusSelect.value = 'N/A';
+                    jobStatusSelect.value = 'None';
                 }
             } else {
                 jobStatusSelect.disabled = true;
-                jobStatusSelect.value = 'N/A';
+                jobStatusSelect.value = 'None';
             }
         }
 
@@ -344,7 +348,7 @@
         const companyInput = document.getElementById('company');
         if (companyInput) { companyInput.disabled = true; companyInput.value = 'N/A'; }
         const jobStatusSelect = document.getElementById('job_status');
-        if (jobStatusSelect) { jobStatusSelect.disabled = true; jobStatusSelect.value = 'N/A'; }
+        if (jobStatusSelect) { jobStatusSelect.disabled = true; jobStatusSelect.value = 'None'; }
 
         const checkinBtn = document.getElementById('checkinBtn');
         if (checkinBtn) checkinBtn.disabled = false;

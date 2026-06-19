@@ -1097,7 +1097,8 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             const jobEsc = job.replace(/'/g, "''");
             const repoEsc = repo.replace(/'/g, "''");
             const studentNameEsc = studentName.replace(/'/g, "''");
-            const trackEsc = (profile.cs_track || '').replace(/'/g, "''");
+            const normalizedTrack = profile.cs_track === 'N/A' ? 'None' : (profile.cs_track || '');
+            const trackEsc = normalizedTrack.replace(/'/g, "''");
             const whatsappEsc = (profile.whatsapp || '').replace(/'/g, "''");
 
             const jobType = profile.seeking || '';
@@ -1152,6 +1153,8 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     async function loadGridData() {
         console.log('Querying profiles from database...');
         console.log('Filtering by dashboard year:', currentDashboardYear);
+
+        const csTracksClause = "AND cs_track IN ('AI', 'DIS', 'BA')";
         
         const result = await conn.query(`
             SELECT 
@@ -1167,6 +1170,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 job
             FROM profiles
             WHERE graduation_year = ${currentDashboardYear}
+            ${csTracksClause}
             ORDER BY student_name
         `);
 
@@ -1804,7 +1808,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             const jobTypeCheckboxes = document.querySelectorAll('[id^="filterSeeking_"]:checked');
             const jobTypes = Array.from(jobTypeCheckboxes).map(cb => cb.value);
 
-            let query = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear}`;
+            let query = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear} AND cs_track IN ('AI', 'DIS', 'BA')`;
 
             // Add track filter if not all are selected
             if (tracks.length > 0 && tracks.length < 3) {
@@ -1834,7 +1838,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
 
             // For statistics, only apply track filter
-            let statsQuery = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear}`;
+            let statsQuery = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear} AND cs_track IN ('AI', 'DIS', 'BA')`;
 
             if (tracks.length > 0 && tracks.length < 3) {
                 const trackConditions = tracks.map(t => `cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
@@ -2490,7 +2494,8 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             document.getElementById('modalFirstName').value = profile.first_name || '';
             document.getElementById('modalLastName').value = profile.last_name || '';
             document.getElementById('modalGraduationYear').value = profile.graduation_year || '';
-            document.getElementById('modalCsTrack').value = profile.cs_track || '';
+            const normalizedCsTrack = profile.cs_track === 'N/A' ? 'None' : (profile.cs_track || '');
+            document.getElementById('modalCsTrack').value = normalizedCsTrack;
             document.getElementById('modalYuEmail').value = profile.yu_email || '';
             document.getElementById('modalEmail').value = profile.email || '';
             
@@ -2772,12 +2777,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
         });
         
+        const rawCsTrack = document.getElementById('modalCsTrack').value;
+        const normalizedCsTrack = rawCsTrack === 'N/A' ? 'None' : rawCsTrack;
+
         const data = {
             yuid: parseInt(document.getElementById('modalYuid').value),
             first_name: window.app.capitalizeFirstLetter(document.getElementById('modalFirstName').value.trim()),
             last_name: window.app.capitalizeFirstLetter(document.getElementById('modalLastName').value.trim()),
             graduation_year: parseInt(document.getElementById('modalGraduationYear').value),
-            cs_track: document.getElementById('modalCsTrack').value,
+            cs_track: normalizedCsTrack,
             yu_email: document.getElementById('modalYuEmail').value,
             whatsapp: document.getElementById('modalWhatsapp').value.replace(/\D/g, ''),
             seeking: document.getElementById('modalSeeking').value,
@@ -2827,6 +2835,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         
         try {
             const formData = window.app.getProfileFormData();
+            if (formData.cs_track === 'N/A') {
+                formData.cs_track = 'None';
+            }
             const token = localStorage.getItem('github_token');
             
             if (!token) {
