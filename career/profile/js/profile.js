@@ -7,6 +7,7 @@
     let internshipCount = 0;
     let graduateSchoolCount = 0;
     let originalLoadedData = null;
+    let activeRepo = null;
     const currentYear = new Date().getFullYear();
 
     // ---------------------------------------------------------------------------
@@ -42,6 +43,7 @@
     function disconnectAccount() {
         localStorage.removeItem('github_token');
         localStorage.removeItem('github_repo');
+        activeRepo = null;
         originalLoadedData = null;
         internshipCount = 0;
         graduateSchoolCount = 0;
@@ -59,10 +61,12 @@
 
     function saveRepo(repo) {
         localStorage.setItem('github_repo', repo);
+        activeRepo = repo;
     }
 
     function clearSavedRepo() {
         localStorage.removeItem('github_repo');
+        activeRepo = null;
     }
 
     async function linkRepo() {
@@ -878,7 +882,7 @@
             return;
         }
 
-        const repo = getRepo();
+        const repo = activeRepo;
         const token = getToken();
         if (!repo || !token) {
             showResults(false, ['No GitHub repository linked or token not found.'], '');
@@ -1163,6 +1167,7 @@
             }
             localStorage.setItem('github_token', token);
             localStorage.setItem('github_repo', repo);
+            activeRepo = repo;
             updateConnectionStatus(repo);
             await loadProfileForm();
         } catch (err) {
@@ -1191,7 +1196,7 @@
     function navigateToProfileEditor() {
         setActiveTab('profileEditorBtn');
         hideFileLastUpdated();
-        if (getToken() && getRepo()) {
+        if (getToken() && activeRepo) {
             loadProfileForm();
         } else {
             loadSettingsForm();
@@ -1205,13 +1210,12 @@
         htmx.ajax('GET', 'fragments/settings-form.html', { target: '#app-content', swap: 'innerHTML' });
         setTimeout(() => {
             const savedToken = getToken();
-            const savedRepo  = getRepo();
             const tokenInput = document.getElementById('githubToken');
             const repoInput  = document.getElementById('repoName');
             const disconnectBtn = document.getElementById('disconnectBtn');
             if (tokenInput && savedToken) tokenInput.value = savedToken;
-            if (repoInput  && savedRepo)  repoInput.value  = savedRepo;
-            if (disconnectBtn) disconnectBtn.classList.toggle('hidden', !savedToken && !savedRepo);
+            if (repoInput  && activeRepo)  repoInput.value  = activeRepo;
+            if (disconnectBtn) disconnectBtn.classList.toggle('hidden', !savedToken && !activeRepo);
         }, 50);
     }
 
@@ -1220,10 +1224,9 @@
         // Give the DOM a moment to settle after the swap
         setTimeout(async () => {
             setupFormEventListeners();
-            const savedRepo  = getRepo();
             const savedToken = getToken();
-            if (savedRepo && savedToken) {
-                await checkProfileFile(savedRepo, savedToken);
+            if (activeRepo && savedToken) {
+                await checkProfileFile(activeRepo, savedToken);
             }
         }, 50);
     }
@@ -1376,7 +1379,7 @@
     }
 
     function navigateToResumeUpload() {
-        if (!getToken() || !getRepo()) {
+        if (!getToken() || !activeRepo) {
             loadSettingsForm();
             return;
         }
@@ -1389,7 +1392,7 @@
         await htmx.ajax('GET', 'fragments/resume-form.html', { target: '#app-content', swap: 'innerHTML' });
         setTimeout(async () => {
             selectedResumeFile = null;
-            const repo  = getRepo();
+            const repo  = activeRepo;
             const token = getToken();
             if (repo && token) {
                 await checkResumeFile(repo, token);
@@ -1580,7 +1583,7 @@
         const resultDiv = document.getElementById('resumeUploadResult');
         const btn = document.getElementById('resumeUploadSubmitBtn');
         const token = getToken();
-        const repo  = getRepo();
+        const repo  = activeRepo;
 
         if (!selectedResumeFile || !token || !repo) return;
 
@@ -1674,10 +1677,19 @@
     window.addEventListener('DOMContentLoaded', async () => {
         initPdfJs();
         setActiveTab('profileEditorBtn');
-        updateConnectionStatus(getRepo());
+
+        // Accept ?repo= query param to pre-select a repository (page-scoped, no localStorage write)
+        const urlParams = new URLSearchParams(window.location.search);
+        const repoParam = urlParams.get('repo');
+        if (repoParam) {
+            activeRepo = repoParam;
+        } else {
+            activeRepo = getRepo();
+        }
+
+        updateConnectionStatus(activeRepo);
         const token = getToken();
-        const repo  = getRepo();
-        if (token && repo) {
+        if (token && activeRepo) {
             await loadProfileForm();
         } else {
             loadSettingsForm();
