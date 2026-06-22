@@ -6,6 +6,7 @@
     // ---------------------------------------------------------------------------
     let internshipCount = 0;
     let graduateSchoolCount = 0;
+    let jobSearchYearCount = 0;
     let originalLoadedData = null;
     let activeRepo = null;
     const currentYear = new Date().getFullYear();
@@ -254,9 +255,22 @@
     // Form Population
     // ---------------------------------------------------------------------------
     function populateForm(data) {
-        // Normalize legacy N/A → None before cloning for change detection
-        if (data.seeking === 'N/A') data.seeking = 'None';
-        if (data.job_status === 'N/A') data.job_status = 'None';
+        // Unmarked profiles (no version) are legacy 2026 format — convert to job_search
+        if (data.version !== 2 && data.seeking) {
+            if (data.seeking === 'N/A') data.seeking = 'None';
+            if (data.job_status === 'N/A') data.job_status = 'None';
+            const recruitingYear = '2026';
+            if (data.seeking && data.seeking !== 'None') {
+                const ftCompany = (data.seeking === 'FT' && data.job_status === 'YES')
+                    ? (data.company || 'None') : 'None';
+                data.job_search = {};
+                data.job_search[recruitingYear] = {
+                    seeking: data.seeking,
+                    job_status: data.job_status || 'None',
+                    full_time_company: (ftCompany.toLowerCase() === 'n/a') ? 'None' : ftCompany
+                };
+            }
+        }
 
         originalLoadedData = JSON.parse(JSON.stringify(data));
 
@@ -270,6 +284,11 @@
         if (graduateSchoolsList) graduateSchoolsList.innerHTML = '';
         graduateSchoolCount = 0;
 
+        // Clear existing job search entries
+        const jobSearchList = document.getElementById('jobSearchList');
+        if (jobSearchList) jobSearchList.innerHTML = '';
+        jobSearchYearCount = 0;
+
         // Basic fields
         setVal('yuid', data.yuid);
         setVal('first_name', data.first_name ? capitalizeFirstLetter(data.first_name) : '');
@@ -279,38 +298,15 @@
         setVal('yu_email', data.yu_email);
         setVal('email', data.email || '');
         setVal('whatsapp', data.whatsapp ? formatWhatsApp(data.whatsapp) : '');
-        setVal('seeking', data.seeking);
 
-        // Job status
-        const jobStatusSelect = document.getElementById('job_status');
-        if (jobStatusSelect) {
-            if (data.seeking === 'None' || !data.seeking) {
-                jobStatusSelect.disabled = true;
-                jobStatusSelect.value = 'None';
-            } else if (data.seeking === 'IN' || data.seeking === 'FT') {
-                jobStatusSelect.disabled = false;
-                jobStatusSelect.value = data.job_status || '';
-                if (!data.job_status) {
-                    jobStatusSelect.disabled = true;
-                    jobStatusSelect.value = 'None';
-                }
-            } else {
-                jobStatusSelect.disabled = true;
-                jobStatusSelect.value = 'None';
+        // Job search per year
+        if (data.job_search) {
+            for (const [year, searchData] of Object.entries(data.job_search)) {
+                addJobSearchYear(year, searchData.seeking, searchData.job_status, searchData.full_time_company);
             }
-        }
-
-        // Company
-        const companyInput = document.getElementById('company');
-        if (companyInput) {
-            if (data.job_status === 'YES') {
-                companyInput.disabled = false;
-                const loaded = (data.company || '').trim();
-                companyInput.value = (loaded.toLowerCase() === 'n/a' || loaded.toLowerCase() === 'na') ? '' : loaded;
-            } else {
-                companyInput.disabled = true;
-                companyInput.value = 'N/A';
-            }
+        } else {
+            // No job search data — add empty entry for graduation year
+            addJobSearchYear(data.graduation_year || '', '', '', '');
         }
 
         // Internships
@@ -347,12 +343,10 @@
         const graduateSchoolsList = document.getElementById('graduateSchoolsList');
         if (graduateSchoolsList) graduateSchoolsList.innerHTML = '';
         graduateSchoolCount = 0;
+        const jobSearchList = document.getElementById('jobSearchList');
+        if (jobSearchList) jobSearchList.innerHTML = '';
+        jobSearchYearCount = 0;
         originalLoadedData = null;
-
-        const companyInput = document.getElementById('company');
-        if (companyInput) { companyInput.disabled = true; companyInput.value = 'N/A'; }
-        const jobStatusSelect = document.getElementById('job_status');
-        if (jobStatusSelect) { jobStatusSelect.disabled = true; jobStatusSelect.value = 'None'; }
 
         const checkinBtn = document.getElementById('checkinBtn');
         if (checkinBtn) checkinBtn.disabled = false;
@@ -381,6 +375,10 @@
         if (graduateSchoolsList) {
             new MutationObserver(checkForChanges).observe(graduateSchoolsList, { childList: true, subtree: true });
         }
+        const jobSearchList = document.getElementById('jobSearchList');
+        if (jobSearchList) {
+            new MutationObserver(checkForChanges).observe(jobSearchList, { childList: true, subtree: true });
+        }
     }
 
     function checkForChanges() {
@@ -391,12 +389,7 @@
             return;
         }
         const currentData = getFormData();
-        const currentEntryCount = document.querySelectorAll('.internship-entry').length;
-        const originalFilledCount = originalLoadedData.internships ? Object.keys(originalLoadedData.internships).length : 0;
-        const currentGsCount = document.querySelectorAll('.graduate-school-entry').length;
-        const originalGsCount = originalLoadedData.graduate_schools ? originalLoadedData.graduate_schools.length : 0;
-        const hasChanges = currentEntryCount !== originalFilledCount || currentGsCount !== originalGsCount
-            || JSON.stringify(currentData) !== JSON.stringify(originalLoadedData);
+        const hasChanges = JSON.stringify(currentData) !== JSON.stringify(originalLoadedData);
         checkinBtn.disabled = !hasChanges;
     }
 
@@ -542,6 +535,98 @@
     }
 
     // ---------------------------------------------------------------------------
+    // Job Search Year Management
+    // ---------------------------------------------------------------------------
+    function addJobSearchYear(prefillYear, prefillSeeking, prefillStatus, prefillCompany) {
+        const list = document.getElementById('jobSearchList');
+        if (!list) return;
+        const id = jobSearchYearCount++;
+        const div = document.createElement('div');
+        div.className = 'job-search-entry rounded-md border border-gray-200 p-3';
+        div.id = `job-search-${id}`;
+
+        const seekingVal = prefillSeeking || '';
+        const statusVal = prefillStatus || '';
+        const companyVal = prefillCompany || '';
+        const statusDisabled = (!seekingVal || seekingVal === 'None') ? 'disabled' : '';
+        const companyDisabled = (statusVal !== 'YES') ? 'disabled' : '';
+        const companyDisplay = (statusVal === 'YES' && companyVal && companyVal !== 'None') ? companyVal : '';
+
+        div.innerHTML = `
+            <div class="flex items-center gap-2 mb-2">
+                <input type="text" placeholder="${currentYear}" maxlength="4"
+                       value="${prefillYear || ''}"
+                       class="w-20 px-2 py-1.5 border border-gray-300 rounded-md text-sm js-year font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <span class="text-xs text-gray-500">Recruiting Year</span>
+                <button type="button" onclick="window.profile.removeJobSearchYear(${id})"
+                        class="ml-auto px-2 py-1 text-red-600 hover:text-red-800 text-xs font-medium transition-colors">
+                    ✕
+                </button>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <select class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm js-seeking focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <option value="">Seeking...</option>
+                        <option value="IN" ${seekingVal === 'IN' ? 'selected' : ''}>Internship</option>
+                        <option value="FT" ${seekingVal === 'FT' ? 'selected' : ''}>Full-Time</option>
+                        <option value="None" ${seekingVal === 'None' ? 'selected' : ''}>(Not Looking)</option>
+                    </select>
+                </div>
+                <div>
+                    <select class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm js-status focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed" ${statusDisabled}>
+                        <option value="None">N/A</option>
+                        <option value="YES" ${statusVal === 'YES' ? 'selected' : ''}>Have Job</option>
+                        <option value="NO" ${statusVal === 'NO' ? 'selected' : ''}>No Job Yet</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="text" placeholder="Company" value="${companyDisplay}"
+                           class="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm js-company focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed" ${companyDisabled}>
+                </div>
+            </div>
+            <div class="text-xs text-red-600 mt-1 hidden js-error"></div>
+        `;
+        list.appendChild(div);
+
+        // Wire up cascading behavior
+        const seekingSelect = div.querySelector('.js-seeking');
+        const statusSelect = div.querySelector('.js-status');
+        const companyInput = div.querySelector('.js-company');
+
+        seekingSelect.addEventListener('change', function () {
+            if (this.value === 'None' || this.value === '') {
+                statusSelect.disabled = true;
+                statusSelect.value = 'None';
+                companyInput.disabled = true;
+                companyInput.value = '';
+            } else {
+                statusSelect.disabled = false;
+                if (statusSelect.value === 'None') statusSelect.value = '';
+            }
+            checkForChanges();
+        });
+
+        statusSelect.addEventListener('change', function () {
+            if (this.value === 'YES') {
+                companyInput.disabled = false;
+                companyInput.value = '';
+            } else {
+                companyInput.disabled = true;
+                companyInput.value = '';
+            }
+            checkForChanges();
+        });
+
+        companyInput.addEventListener('input', checkForChanges);
+    }
+
+    function removeJobSearchYear(id) {
+        const el = document.getElementById(`job-search-${id}`);
+        if (el) el.remove();
+        checkForChanges();
+    }
+
+    // ---------------------------------------------------------------------------
     // Validation
     // ---------------------------------------------------------------------------
     function validateYUID(yuid) {
@@ -615,6 +700,11 @@
         document.querySelectorAll('.gs-name-error, .gs-status-error').forEach(el => {
             el.classList.add('hidden');
         });
+        document.querySelectorAll('.js-error').forEach(el => {
+            el.classList.add('hidden');
+        });
+        const jsGlobalError = document.getElementById('job_search-error');
+        if (jsGlobalError) jsGlobalError.classList.add('hidden');
 
         function fieldError(inputId, errorId, msg) {
             errors.push(msg);
@@ -672,28 +762,60 @@
         const whatsappErr = validateWhatsApp(whatsapp);
         if (whatsappErr) fieldError('whatsapp', 'whatsapp-error', whatsappErr);
 
-        // Seeking
-        const seeking = document.getElementById('seeking')?.value || '';
-        if (!seeking) fieldError('seeking', 'seeking-error', 'Please select what you\'re seeking');
-
-        // Job Status
-        const jobStatus = document.getElementById('job_status')?.value || '';
-        if ((seeking === 'IN' || seeking === 'FT') && !jobStatus) {
-            fieldError('job_status', 'job_status-error', 'Please select a job status');
+        // Job Search entries
+        const jobSearchEntries = document.querySelectorAll('.job-search-entry');
+        if (jobSearchEntries.length === 0) {
+            const jsError = document.getElementById('job_search-error');
+            if (jsError) { jsError.textContent = 'At least one job search entry is required'; jsError.classList.remove('hidden'); }
+            errors.push('At least one job search entry is required');
+            isValid = false;
         }
-        if (seeking === 'N/A') {
-            const jobStatusSelect = document.getElementById('job_status');
-            if (jobStatusSelect) jobStatusSelect.value = 'N/A';
-        }
+        const seenJsYears = [];
+        jobSearchEntries.forEach((entry, index) => {
+            const yearInput = entry.querySelector('.js-year');
+            const seekingSelect = entry.querySelector('.js-seeking');
+            const statusSelect = entry.querySelector('.js-status');
+            const companyInput = entry.querySelector('.js-company');
+            const errorEl = entry.querySelector('.js-error');
+            const year = yearInput?.value.trim() || '';
+            const seeking = seekingSelect?.value || '';
+            const status = statusSelect?.value || '';
 
-        // Company
-        const companyInput = document.getElementById('company');
-        if (jobStatus === 'YES' && companyInput && !companyInput.disabled) {
-            const val = companyInput.value.trim().toLowerCase();
-            if (!val || val === 'n/a' || val === 'na') {
-                fieldError('company', 'company-error', 'Please enter a real company name');
+            if (!year) {
+                errors.push(`Job Search #${index + 1}: Year is required`);
+                yearInput?.classList.add('border-red-500');
+                if (errorEl) { errorEl.textContent = 'Year is required'; errorEl.classList.remove('hidden'); }
+                isValid = false;
+            } else if (!/^\d{4}$/.test(year)) {
+                errors.push(`Job Search #${index + 1}: Year must be 4 digits`);
+                yearInput?.classList.add('border-red-500');
+                if (errorEl) { errorEl.textContent = 'Year must be 4 digits'; errorEl.classList.remove('hidden'); }
+                isValid = false;
+            } else if (seenJsYears.includes(year)) {
+                errors.push(`Job Search #${index + 1}: Duplicate year ${year}`);
+                yearInput?.classList.add('border-red-500');
+                if (errorEl) { errorEl.textContent = 'Duplicate year'; errorEl.classList.remove('hidden'); }
+                isValid = false;
+            } else {
+                seenJsYears.push(year);
             }
-        }
+
+            if (!seeking) {
+                errors.push(`Job Search #${index + 1}: Seeking is required`);
+                seekingSelect?.classList.add('border-red-500');
+                isValid = false;
+            }
+
+            if (seeking === 'FT' && status === 'YES') {
+                const val = (companyInput?.value || '').trim().toLowerCase();
+                if (!val || val === 'n/a' || val === 'na' || val === 'none') {
+                    errors.push(`Job Search #${index + 1}: Company is required when you have a FT job`);
+                    companyInput?.classList.add('border-red-500');
+                    if (errorEl) { errorEl.textContent = 'Company name required'; errorEl.classList.remove('hidden'); }
+                    isValid = false;
+                }
+            }
+        });
 
         // Internships
         document.querySelectorAll('.internship-entry').forEach((entry, index) => {
@@ -795,21 +917,29 @@
             graduation_year: parseInt(document.getElementById('graduation_year')?.value || '0'),
             cs_track: document.getElementById('cs_track')?.value || '',
             yu_email: document.getElementById('yu_email')?.value || '',
-            whatsapp: (document.getElementById('whatsapp')?.value || '').replace(/\D/g, ''),
-            seeking: document.getElementById('seeking')?.value || '',
-            job_status: document.getElementById('job_status')?.value || ''
+            whatsapp: (document.getElementById('whatsapp')?.value || '').replace(/\D/g, '')
         };
 
         const email = (document.getElementById('email')?.value || '').trim();
         if (email) data.email = email;
 
-        const companyInput = document.getElementById('company');
-        if (data.job_status === 'YES' && companyInput && !companyInput.disabled) {
-            const v = companyInput.value.trim();
-            if (v) data.company = capitalizeFirstLetterOnly(v);
-        } else {
-            data.company = 'N/A';
-        }
+        // Job search per year
+        const jobSearch = {};
+        document.querySelectorAll('.job-search-entry').forEach(entry => {
+            const year = entry.querySelector('.js-year')?.value.trim() || '';
+            const seeking = entry.querySelector('.js-seeking')?.value || '';
+            const status = entry.querySelector('.js-status')?.value || 'None';
+            const companyInput = entry.querySelector('.js-company');
+            let ftCompany = 'None';
+            if (seeking === 'FT' && status === 'YES' && companyInput && !companyInput.disabled) {
+                const v = companyInput.value.trim();
+                if (v) ftCompany = capitalizeFirstLetterOnly(v);
+            }
+            if (year && seeking) {
+                jobSearch[year] = { seeking, job_status: status, full_time_company: ftCompany };
+            }
+        });
+        if (Object.keys(jobSearch).length > 0) data.job_search = jobSearch;
 
         const internships = {};
         document.querySelectorAll('.internship-entry').forEach(entry => {
@@ -835,17 +965,28 @@
     // ---------------------------------------------------------------------------
     function generateYAML(data) {
         let yaml = 'student_profile:\n';
-        yaml += `  yuid: ${data.yuid}  # Must be a 9-digit number starting with 800\n`;
+        yaml += `  version: 2\n`;
+        yaml += `  yuid: ${data.yuid}\n`;
         yaml += `  first_name: ${data.first_name}\n`;
         yaml += `  last_name: ${data.last_name}\n`;
-        yaml += `  graduation_year: ${data.graduation_year}  # Must be >= 2026\n`;
-        yaml += `  cs_track: ${data.cs_track}  # Options: AI, DIS, BA, N/A\n`;
+        yaml += '\n';
+        yaml += `  graduation_year: ${data.graduation_year}\n`;
+        yaml += `  cs_track: ${data.cs_track}\n`;
+        yaml += '\n';
         if (data.email) yaml += `  email: ${data.email}\n`;
         yaml += `  yu_email: ${data.yu_email}\n`;
-        yaml += `  whatsapp: "${data.whatsapp}"  # Cell number hooked up to WhatsApp\n`;
-        yaml += `  seeking: ${data.seeking}  # Options: IN, FT, N/A\n`;
-        yaml += `  job_status: ${data.job_status}  # Options: YES, NO, N/A\n`;
-        yaml += `  company: ${data.company}\n`;
+        yaml += `  whatsapp: "${data.whatsapp}"\n`;
+        yaml += '\n';
+        if (data.job_search && Object.keys(data.job_search).length > 0) {
+            yaml += '  job_search:\n';
+            for (const [year, search] of Object.entries(data.job_search)) {
+                yaml += `    "${year}":\n`;
+                yaml += `      seeking: ${search.seeking}\n`;
+                yaml += `      job_status: ${search.job_status}\n`;
+                yaml += `      full_time_company: ${search.full_time_company}\n`;
+            }
+            yaml += '\n';
+        }
         if (data.internships && Object.keys(data.internships).length > 0) {
             yaml += '  internships:\n';
             for (const [year, company] of Object.entries(data.internships)) {
@@ -1235,47 +1376,6 @@
     // Event Listeners (attached after profile-form fragment loads)
     // ---------------------------------------------------------------------------
     function setupFormEventListeners() {
-        // Seeking → job status / company cascade
-        const seekingEl = document.getElementById('seeking');
-        if (seekingEl) {
-            seekingEl.addEventListener('change', function () {
-                const jobStatusSelect = document.getElementById('job_status');
-                const naOption = document.getElementById('job_status_na_option');
-                const companyInput = document.getElementById('company');
-                if (this.value === 'N/A' || this.value === '') {
-                    jobStatusSelect.disabled = true;
-                    jobStatusSelect.value = 'N/A';
-                    if (naOption) naOption.style.display = '';
-                    companyInput.disabled = true;
-                    companyInput.value = 'N/A';
-                } else {
-                    jobStatusSelect.disabled = false;
-                    if (naOption) naOption.style.display = 'none';
-                    if (jobStatusSelect.value === 'N/A') jobStatusSelect.value = '';
-                }
-                checkForChanges();
-            });
-        }
-
-        // Job Status → company cascade
-        const jobStatusEl = document.getElementById('job_status');
-        if (jobStatusEl) {
-            jobStatusEl.addEventListener('change', function () {
-                const companyInput = document.getElementById('company');
-                if (this.value === 'YES') {
-                    companyInput.disabled = false;
-                    companyInput.value = '';
-                    companyInput.required = true;
-                } else {
-                    companyInput.disabled = true;
-                    companyInput.value = 'N/A';
-                    companyInput.required = false;
-                    const companyErr = document.getElementById('company-error');
-                    if (companyErr) { companyErr.classList.add('hidden'); }
-                }
-            });
-        }
-
         // WhatsApp: format on blur
         const whatsappEl = document.getElementById('whatsapp');
         if (whatsappEl) {
@@ -1336,15 +1436,6 @@
             });
         }
 
-        // Company: capitalize on blur
-        const companyEl = document.getElementById('company');
-        if (companyEl) {
-            companyEl.addEventListener('blur', function () {
-                if (!this.disabled && this.value.trim()) {
-                    this.value = capitalizeFirstLetterOnly(this.value.trim());
-                }
-            });
-        }
     }
 
     function showFieldError(inputId, errorId, msg) {
@@ -1711,6 +1802,8 @@
         removeInternship,
         addGraduateSchool,
         removeGraduateSchool,
+        addJobSearchYear,
+        removeJobSearchYear,
         handleResumeDrop,
         handleResumeFileSelect,
         clearResumeFile,

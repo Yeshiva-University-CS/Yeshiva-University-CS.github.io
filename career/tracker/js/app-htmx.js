@@ -17,7 +17,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     let repoStatusGridApi = null;
     let repoStatusData = [];
     let pieChart = null;
-    let currentDashboardYear = 2026; // Default to 2026 dashboard
+    let currentDashboardYear = new Date().getFullYear(); // Default to current year dashboard
     
     // ============================================================================
     // TOKEN MANAGEMENT
@@ -154,6 +154,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             if (year) {
                 currentDashboardYear = year;
                 console.log('Set currentDashboardYear to:', currentDashboardYear);
+                updateDashboardTitle();
             }
             
             // Wait a moment for HTMX to swap the content, then initialize grid
@@ -418,10 +419,18 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     graduation_year INTEGER,
                     cs_track TEXT,
                     email TEXT,
-                    whatsapp TEXT,
-                    job_type TEXT,
+                    whatsapp TEXT
+                )
+            `);
+
+            await conn.query(`
+                CREATE TABLE IF NOT EXISTS job_search(
+                    yuid INTEGER,
+                    recruiting_year INTEGER,
+                    seeking TEXT,
                     job_status TEXT,
-                    job TEXT
+                    full_time_company TEXT,
+                    PRIMARY KEY (yuid, recruiting_year)
                 )
             `);
 
@@ -698,6 +707,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
             await conn.query('DELETE FROM profiles_raw');
             await conn.query('DELETE FROM profiles');
+            await conn.query('DELETE FROM job_search');
             await conn.query('DELETE FROM internships');
             await conn.query('DELETE FROM graduate_schools');
 
@@ -786,6 +796,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     updateRepoStatusSummary(repoStatusData);
                 }
             }
+
+            // Render dynamic year tabs after data is loaded
+            await renderYearTabs();
 
             console.log('Data loaded successfully!');
             showLoading(false);
@@ -1088,27 +1101,11 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
 
             const email = (profile.email || profile.yu_email || '').replace(/'/g, "''");
-            let job = profile.job || profile.company || 'N/A';
-            if (job === 'N/A') {
-                job = '';
-            }
-            const jobEsc = job.replace(/'/g, "''");
             const repoEsc = repo.replace(/'/g, "''");
             const studentNameEsc = studentName.replace(/'/g, "''");
             const normalizedTrack = profile.cs_track === 'N/A' ? 'None' : (profile.cs_track || '');
             const trackEsc = normalizedTrack.replace(/'/g, "''");
             const whatsappEsc = (profile.whatsapp || '').replace(/'/g, "''");
-
-            const jobType = profile.seeking || '';
-            const jobTypeEsc = jobType.replace(/'/g, "''");
-
-            let jobStatus = profile.job_status || '';
-            if (jobStatus === 'YES') {
-                jobStatus = 'Yes';
-            } else if (jobStatus === 'NO') {
-                jobStatus = 'No';
-            }
-            const jobStatusEsc = jobStatus.replace(/'/g, "''");
 
             await conn.query(`
                 INSERT OR REPLACE INTO profiles VALUES (
@@ -1118,16 +1115,53 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     ${profile.graduation_year || 'NULL'},
                     '${trackEsc}',
                     '${email}',
-                    '${whatsappEsc}',
-                    '${jobTypeEsc}',
-                    '${jobStatusEsc}',
-                    '${jobEsc}'
+                    '${whatsappEsc}'
                 )
             `);
 
+            // Process job_search data: version 2 uses job_search block,
+            // unmarked (no version) profiles are legacy 2026 format
+            if (profile.version === 2 && profile.job_search && profile.yuid) {
+                for (const [year, searchData] of Object.entries(profile.job_search)) {
+                    const seeking = (searchData.seeking || 'None').replace(/'/g, "''");
+                    const jobStatus = (searchData.job_status || 'None').replace(/'/g, "''");
+                    const ftCompany = (searchData.full_time_company || 'None').replace(/'/g, "''");
+                    await conn.query(`
+                        INSERT INTO job_search VALUES (
+                            ${profile.yuid}, ${parseInt(year)}, '${seeking}', '${jobStatus}', '${ftCompany}'
+                        )
+                        ON CONFLICT (yuid, recruiting_year) DO UPDATE SET
+                            seeking = EXCLUDED.seeking,
+                            job_status = EXCLUDED.job_status,
+                            full_time_company = EXCLUDED.full_time_company
+                    `);
+                }
+            } else if (profile.yuid) {
+                // Legacy format (no version): treat as 2026 recruiting year
+                const recruitingYear = 2026;
+                const seeking = (profile.seeking || '').replace(/'/g, "''");
+                const jobStatus = (profile.job_status || '').replace(/'/g, "''");
+                let ftCompany = 'None';
+                if (seeking === 'FT' && jobStatus === 'YES') {
+                    ftCompany = (profile.company || profile.job || 'None').replace(/'/g, "''");
+                    if (ftCompany.toLowerCase() === 'n/a') ftCompany = 'None';
+                }
+                if (seeking && seeking !== 'N/A' && seeking !== 'None') {
+                    await conn.query(`
+                        INSERT INTO job_search VALUES (
+                            ${profile.yuid}, ${recruitingYear}, '${seeking}', '${jobStatus}', '${ftCompany}'
+                        )
+                        ON CONFLICT (yuid, recruiting_year) DO UPDATE SET
+                            seeking = EXCLUDED.seeking,
+                            job_status = EXCLUDED.job_status,
+                            full_time_company = EXCLUDED.full_time_company
+                    `);
+                }
+            }
+
             if (profile.internships && profile.yuid) {
                 for (const [year, company] of Object.entries(profile.internships)) {
-                    const companyEsc = company.replace(/'/g, "''");
+                    const companyEsc = String(company).replace(/'/g, "''");
                     await conn.query(`
                         INSERT INTO internships VALUES (${profile.yuid}, ${parseInt(year)}, '${companyEsc}')
                     `);
@@ -1152,24 +1186,32 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         console.log('Querying profiles from database...');
         console.log('Filtering by dashboard year:', currentDashboardYear);
 
-        const csTracksClause = "AND cs_track IN ('AI', 'DIS', 'BA')";
-        
+        const csTracksClause = "AND p.cs_track IN ('AI', 'DIS', 'BA')";
+
         const result = await conn.query(`
-            SELECT 
-                repo,
-                student_name,
-                yuid,
-                graduation_year,
-                cs_track,
-                email,
-                whatsapp,
-                job_type,
-                job_status,
-                job
-            FROM profiles
-            WHERE graduation_year = ${currentDashboardYear}
+            SELECT
+                p.repo,
+                p.student_name,
+                p.yuid,
+                p.graduation_year,
+                p.cs_track,
+                p.email,
+                p.whatsapp,
+                COALESCE(js.seeking, '') as job_type,
+                CASE
+                    WHEN js.job_status = 'YES' THEN 'Yes'
+                    WHEN js.job_status = 'NO' THEN 'No'
+                    ELSE COALESCE(js.job_status, '')
+                END as job_status,
+                CASE
+                    WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN ''
+                    ELSE js.full_time_company
+                END as job
+            FROM profiles p
+            LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
+            WHERE p.graduation_year >= ${currentDashboardYear}
             ${csTracksClause}
-            ORDER BY student_name
+            ORDER BY p.student_name
         `);
 
         const profiles = result.toArray();
@@ -1798,34 +1840,44 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             // Collect checked values for each filter group
             const trackCheckboxes = document.querySelectorAll('[id^="filterTrack_"]:checked');
             const tracks = Array.from(trackCheckboxes).map(cb => cb.value);
-            
+
             const jobStatusCheckboxes = document.querySelectorAll('[id^="filterJobStatus_"]:checked');
             const jobStatuses = Array.from(jobStatusCheckboxes).map(cb => cb.value);
-            
+
             const jobTypeCheckboxes = document.querySelectorAll('[id^="filterSeeking_"]:checked');
             const jobTypes = Array.from(jobTypeCheckboxes).map(cb => cb.value);
 
-            let query = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear} AND cs_track IN ('AI', 'DIS', 'BA')`;
+            let query = `
+                SELECT p.repo, p.student_name, p.yuid, p.graduation_year, p.cs_track, p.email, p.whatsapp,
+                    COALESCE(js.seeking, '') as job_type,
+                    CASE WHEN js.job_status = 'YES' THEN 'Yes' WHEN js.job_status = 'NO' THEN 'No' ELSE COALESCE(js.job_status, '') END as job_status,
+                    CASE WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN '' ELSE js.full_time_company END as job
+                FROM profiles p
+                LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
+                WHERE p.graduation_year >= ${currentDashboardYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
 
             // Add track filter if not all are selected
             if (tracks.length > 0 && tracks.length < 3) {
-                const trackConditions = tracks.map(t => `cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
+                const trackConditions = tracks.map(t => `p.cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
                 query += ` AND (${trackConditions})`;
             }
-            
+
             // Add job status filter if not all are selected
             if (jobStatuses.length > 0 && jobStatuses.length < 2) {
-                const statusConditions = jobStatuses.map(s => `job_status = '${s.replace(/'/g, "''")}'`).join(' OR ');
+                const statusConditions = jobStatuses.map(s => {
+                    const dbVal = s === 'Yes' ? 'YES' : 'NO';
+                    return `js.job_status = '${dbVal}'`;
+                }).join(' OR ');
                 query += ` AND (${statusConditions})`;
             }
-            
+
             // Add job type filter if not all are selected
             if (jobTypes.length > 0 && jobTypes.length < 2) {
-                const typeConditions = jobTypes.map(t => `job_type = '${t.replace(/'/g, "''")}'`).join(' OR ');
+                const typeConditions = jobTypes.map(t => `js.seeking = '${t.replace(/'/g, "''")}'`).join(' OR ');
                 query += ` AND (${typeConditions})`;
             }
 
-            query += ' ORDER BY student_name';
+            query += ' ORDER BY p.student_name';
 
             const result = await conn.query(query);
             const filteredProfiles = result.toArray();
@@ -1835,10 +1887,17 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
 
             // For statistics, only apply track filter
-            let statsQuery = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear} AND cs_track IN ('AI', 'DIS', 'BA')`;
+            let statsQuery = `
+                SELECT p.repo, p.student_name, p.yuid, p.graduation_year, p.cs_track, p.email, p.whatsapp,
+                    COALESCE(js.seeking, '') as job_type,
+                    CASE WHEN js.job_status = 'YES' THEN 'Yes' WHEN js.job_status = 'NO' THEN 'No' ELSE COALESCE(js.job_status, '') END as job_status,
+                    CASE WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN '' ELSE js.full_time_company END as job
+                FROM profiles p
+                LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
+                WHERE p.graduation_year >= ${currentDashboardYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
 
             if (tracks.length > 0 && tracks.length < 3) {
-                const trackConditions = tracks.map(t => `cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
+                const trackConditions = tracks.map(t => `p.cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
                 statsQuery += ` AND (${trackConditions})`;
             }
 
@@ -1885,6 +1944,80 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         updateFilterDisplay();
     }
     
+    // ============================================================================
+    // DYNAMIC YEAR TABS
+    // ============================================================================
+
+    function updateDashboardTitle() {
+        const titleEl = document.getElementById('dashboardTitle');
+        if (titleEl) {
+            titleEl.textContent = `${currentDashboardYear} Recruiting Cycle`;
+        }
+    }
+
+    async function renderYearTabs() {
+        const container = document.getElementById('dashboardYearTabs');
+        if (!container) return;
+
+        let years = [];
+        if (conn) {
+            try {
+                const result = await conn.query(`
+                    SELECT DISTINCT graduation_year FROM profiles
+                    WHERE graduation_year IS NOT NULL AND cs_track IN ('AI', 'DIS', 'BA')
+                    ORDER BY graduation_year
+                `);
+                years = result.toArray().map(r => r.graduation_year);
+            } catch (e) {
+                console.warn('Could not query years for tabs:', e);
+            }
+        }
+
+        // Ensure current dashboard year is included, and at minimum show current calendar year
+        const calYear = new Date().getFullYear();
+        if (!years.includes(calYear)) years.push(calYear);
+        if (!years.includes(currentDashboardYear)) years.push(currentDashboardYear);
+        years = [...new Set(years)].sort((a, b) => a - b);
+
+        // Generate one tab per year where the dashboard makes sense (year >= earliest grad year minus 1)
+        const dashboardYears = years.filter(y => y >= calYear);
+
+        container.innerHTML = '';
+        for (const year of dashboardYears) {
+            const isActive = year === currentDashboardYear;
+            const btn = document.createElement('button');
+            btn.className = `tab-button flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${isActive ? 'text-white bg-blue-600' : 'text-gray-700 hover:bg-gray-100'}`;
+            btn.setAttribute('data-year', year);
+            btn.innerHTML = `
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>${year} Dashboard</span>
+            `;
+            btn.addEventListener('click', function () {
+                // Update Alpine.js state via dispatch
+                window.dispatchEvent(new CustomEvent('set-dashboard-view', { detail: true }));
+                // Activate button styling
+                document.querySelectorAll('.tab-button').forEach(b => {
+                    b.classList.remove('bg-blue-600', 'text-white');
+                    b.classList.add('text-gray-700', 'hover:bg-gray-100');
+                });
+                this.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                this.classList.add('bg-blue-600', 'text-white');
+                // Load dashboard content then switch
+                htmx.ajax('GET', 'fragments/dashboard-content.html?v=2025-02-09-header-summary', {
+                    target: '#tab-container',
+                    swap: 'innerHTML'
+                }).then(() => {
+                    window.app.switchTab('dashboard', year);
+                });
+            });
+            container.appendChild(btn);
+        }
+
+        updateDashboardTitle();
+    }
+
     // ============================================================================
     // CHART MANAGEMENT
     // ============================================================================
