@@ -18,6 +18,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     let repoStatusData = [];
     let pieChart = null;
     let currentDashboardYear = new Date().getFullYear(); // Default to current year dashboard
+    let selectedGradYear = currentDashboardYear;
     
     // ============================================================================
     // TOKEN MANAGEMENT
@@ -153,6 +154,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             // Store the current dashboard year if provided
             if (year) {
                 currentDashboardYear = year;
+                selectedGradYear = year;
                 console.log('Set currentDashboardYear to:', currentDashboardYear);
                 updateDashboardTitle();
             }
@@ -1186,6 +1188,20 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         console.log('Querying profiles from database...');
         console.log('Filtering by dashboard year:', currentDashboardYear);
 
+        const eligibleYears = [currentDashboardYear, currentDashboardYear + 1];
+        const eligibleResult = await conn.query(`
+            SELECT DISTINCT graduation_year FROM profiles
+            WHERE graduation_year IN (${eligibleYears.join(',')})
+            AND cs_track IN ('AI', 'DIS', 'BA')
+            ORDER BY graduation_year
+        `);
+        const availableGradYears = eligibleResult.toArray().map(r => r.graduation_year);
+
+        if (!availableGradYears.includes(selectedGradYear)) {
+            selectedGradYear = availableGradYears.length > 0 ? availableGradYears[0] : currentDashboardYear;
+        }
+        populateGradYearDropdown(availableGradYears);
+
         const csTracksClause = "AND p.cs_track IN ('AI', 'DIS', 'BA')";
 
         const result = await conn.query(`
@@ -1209,7 +1225,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 END as job
             FROM profiles p
             LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
-            WHERE p.graduation_year >= ${currentDashboardYear}
+            WHERE p.graduation_year = ${selectedGradYear}
             ${csTracksClause}
             ORDER BY p.student_name
         `);
@@ -1826,8 +1842,28 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     }
     
     function updateFilters(profiles) {
-        // No longer populating graduation year filter since it's controlled by dashboard tabs
-        // Keeping function for potential future filter additions
+    }
+
+    function populateGradYearDropdown(availableYears) {
+        const select = document.getElementById('filterGradYear');
+        if (!select) return;
+
+        select.innerHTML = '';
+        for (const year of availableYears) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            if (year === selectedGradYear) option.selected = true;
+            select.appendChild(option);
+        }
+    }
+
+    async function onGradYearChange() {
+        const select = document.getElementById('filterGradYear');
+        if (select) {
+            selectedGradYear = parseInt(select.value);
+        }
+        await applyFilters();
     }
     
     async function applyFilters() {
@@ -1847,6 +1883,11 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             const jobTypeCheckboxes = document.querySelectorAll('[id^="filterSeeking_"]:checked');
             const jobTypes = Array.from(jobTypeCheckboxes).map(cb => cb.value);
 
+            const gradYearSelect = document.getElementById('filterGradYear');
+            if (gradYearSelect) {
+                selectedGradYear = parseInt(gradYearSelect.value) || selectedGradYear;
+            }
+
             let query = `
                 SELECT p.repo, p.student_name, p.yuid, p.graduation_year, p.cs_track, p.email, p.whatsapp,
                     COALESCE(js.seeking, '') as job_type,
@@ -1854,7 +1895,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     CASE WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN '' ELSE js.full_time_company END as job
                 FROM profiles p
                 LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
-                WHERE p.graduation_year >= ${currentDashboardYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
+                WHERE p.graduation_year = ${selectedGradYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
 
             // Add track filter if not all are selected
             if (tracks.length > 0 && tracks.length < 3) {
@@ -1894,7 +1935,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     CASE WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN '' ELSE js.full_time_company END as job
                 FROM profiles p
                 LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
-                WHERE p.graduation_year >= ${currentDashboardYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
+                WHERE p.graduation_year = ${selectedGradYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
 
             if (tracks.length > 0 && tracks.length < 3) {
                 const trackConditions = tracks.map(t => `p.cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
@@ -1959,28 +2000,8 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         const container = document.getElementById('dashboardYearTabs');
         if (!container) return;
 
-        let years = [];
-        if (conn) {
-            try {
-                const result = await conn.query(`
-                    SELECT DISTINCT graduation_year FROM profiles
-                    WHERE graduation_year IS NOT NULL AND cs_track IN ('AI', 'DIS', 'BA')
-                    ORDER BY graduation_year
-                `);
-                years = result.toArray().map(r => r.graduation_year);
-            } catch (e) {
-                console.warn('Could not query years for tabs:', e);
-            }
-        }
-
-        // Ensure current dashboard year is included, and at minimum show current calendar year
         const calYear = new Date().getFullYear();
-        if (!years.includes(calYear)) years.push(calYear);
-        if (!years.includes(currentDashboardYear)) years.push(currentDashboardYear);
-        years = [...new Set(years)].sort((a, b) => a - b);
-
-        // Generate one tab per year where the dashboard makes sense (year >= earliest grad year minus 1)
-        const dashboardYears = years.filter(y => y >= calYear);
+        const dashboardYears = [calYear + 1, calYear]; // descending order
 
         container.innerHTML = '';
         for (const year of dashboardYears) {
@@ -2324,6 +2345,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         closeRefreshModal,
         applyFilters,
         handleFilterChange,
+        onGradYearChange,
         exportToCSV,
         downloadResumes,
         reloadSelectedRepos,
