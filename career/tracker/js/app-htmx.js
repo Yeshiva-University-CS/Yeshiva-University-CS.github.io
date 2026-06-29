@@ -504,14 +504,14 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 'Accept': 'application/vnd.github.v3.raw'
             } : {};
 
-            console.log('Attempting to load profile_data.json from careers repo...');
-            const response = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+            console.log('Attempting to load profile_data.v2.json from careers repo...');
+            const response = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
                 headers: headers
             });
 
             if (!response.ok) {
                 if (response.status === 404) {
-                    console.log('profile_data.json not found in careers repo');
+                    console.log('profile_data.v2.json not found in careers repo');
                     return null;
                 }
                 if (response.status === 401) {
@@ -556,7 +556,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         
         try {
             // Force a fresh request for metadata only (not content)
-            const getResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+            const getResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
                 headers: {
                     'Authorization': `token ${token}`,
                     'Accept': 'application/vnd.github.v3+json'
@@ -575,7 +575,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     console.log('Making second attempt with different Accept header...');
                     
                     // Try again with explicit object+json accept header
-                    const retryResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+                    const retryResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
                         headers: {
                             'Authorization': `token ${token}`,
                             'Accept': 'application/vnd.github.object+json'
@@ -643,7 +643,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         
         console.log('PUT request payload:', JSON.stringify({...payload, content: payload.content.substring(0, 100) + '...'}, null, 2));
         
-        const putResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+        const putResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
             method: 'PUT',
             headers: {
                 'Authorization': `token ${token}`,
@@ -659,7 +659,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         }
         
         const result = await putResponse.json();
-        console.log('Successfully saved profile_data.json to GitHub:', result.commit.sha);
+        console.log('Successfully saved profile_data.v2.json to GitHub:', result.commit.sha);
         return result;
     }
     
@@ -713,7 +713,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             await conn.query('DELETE FROM internships');
             await conn.query('DELETE FROM graduate_schools');
 
-            // Try to load from consolidated profile_data.json
+            // Try to load from consolidated profile_data.v2.json
             console.log('Loading from consolidated profile data...');
             const consolidatedData = await loadConsolidatedProfileData();
             
@@ -1127,7 +1127,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 for (const [year, searchData] of Object.entries(profile.job_search)) {
                     const seeking = (searchData.seeking || 'None').replace(/'/g, "''");
                     const jobStatus = (searchData.job_status || 'None').replace(/'/g, "''");
-                    const ftCompany = (searchData.full_time_company || 'None').replace(/'/g, "''");
+                    const ftCompany = (searchData.company || searchData.full_time_company || 'None').replace(/'/g, "''");
                     await conn.query(`
                         INSERT INTO job_search VALUES (
                             ${profile.yuid}, ${parseInt(year)}, '${seeking}', '${jobStatus}', '${ftCompany}'
@@ -1137,6 +1137,12 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                             job_status = EXCLUDED.job_status,
                             full_time_company = EXCLUDED.full_time_company
                     `);
+                    if (seeking === 'IN' && ftCompany && ftCompany !== 'None') {
+                        const companyEsc = ftCompany.replace(/'/g, "''");
+                        await conn.query(`
+                            INSERT INTO internships VALUES (${profile.yuid}, ${parseInt(year)}, '${companyEsc}')
+                        `);
+                    }
                 }
             } else if (profile.yuid) {
                 // Legacy format (no version): treat as 2026 recruiting year
