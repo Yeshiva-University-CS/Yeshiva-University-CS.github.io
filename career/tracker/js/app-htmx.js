@@ -21,6 +21,16 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     let selectedGradYear = currentDashboardYear;
     
     // ============================================================================
+    // COMPANY NORMALIZATION
+    // ============================================================================
+
+    function normalizeCompanyValue(val) {
+        const v = (val == null ? '' : String(val)).trim();
+        if (!v || v.toLowerCase() === 'none' || v.toLowerCase() === 'n/a' || v.toLowerCase() === 'na') return 'None';
+        return v;
+    }
+
+    // ============================================================================
     // TOKEN MANAGEMENT
     // ============================================================================
     
@@ -816,7 +826,38 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     // ============================================================================
     // SHARED REPO PROCESSING FUNCTION
     // ============================================================================
-    
+
+    // Converts a V1 student_profile (seeking/company/job_status) to V2 (version:2, job_search).
+    // Mutates data.student_profile in place. Returns true if a conversion was performed.
+    function convertProfileV1ToV2(data) {
+        const profile = data && data.student_profile;
+        if (!profile || profile.version === 2 || !profile.seeking) return false;
+
+        if (profile.seeking === 'N/A') profile.seeking = 'None';
+        if (profile.job_status === true) profile.job_status = 'YES';
+        else if (profile.job_status === false) profile.job_status = 'NO';
+        if (profile.job_status === 'N/A') profile.job_status = 'None';
+
+        const recruitingYear = String(profile.graduation_year || new Date().getFullYear());
+        if (profile.seeking && profile.seeking !== 'None') {
+            let company = 'None';
+            if (profile.seeking === 'FT') {
+                const raw = profile.company != null ? String(profile.company).trim() : '';
+                if (raw && raw.toLowerCase() !== 'n/a' && raw.toLowerCase() !== 'none') {
+                    company = raw;
+                }
+            }
+            const jobStatus = company !== 'None' ? 'YES' : 'NO';
+            profile.job_search = {};
+            profile.job_search[recruitingYear] = { seeking: profile.seeking, job_status: jobStatus, company };
+        }
+        delete profile.seeking;
+        delete profile.job_status;
+        delete profile.company;
+        profile.version = 2;
+        return true;
+    }
+
     // Shared function to process a single repository profile
     async function processSingleRepoProfile(repo, token) {
         const profilePath = 'profile.yml';
@@ -839,8 +880,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 if (text.trim()) {
                     try {
                         const data = jsyaml.load(text);
+                        const wasV1Converted = convertProfileV1ToV2(data);
                         const profile = data.student_profile || {};
-                        
+
                         if (profile.first_name && profile.last_name) {
                             entry.studentName = `${profile.last_name}, ${profile.first_name}`;
                         } else {
@@ -849,6 +891,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
                         entry.data = data;
                         entry.status = 'Success';
+                        entry.wasV1Converted = wasV1Converted;
                         
                         // Get last updated time
                         try {
@@ -1005,6 +1048,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         }
                         consolidatedData.push(entry);
                         updated++;
+                    } else if (entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                        console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (unchanged timestamp) - updating entry`);
+                        consolidatedData.push(entry);
+                        updated++;
                     } else {
                         console.log(`  ⊘ ${displayRepo}: Keeping existing data (${existingEntry.lastUpdated} >= ${entry.lastUpdated})`);
                         consolidatedData.push(existingEntry);
@@ -1020,9 +1067,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         // New fetch succeeded but timestamp fetch failed due to ANY error 
                         // (429 rate limit, 403, 500, network error, etc.)
                         if (existingEntry.lastUpdated !== 'Unknown' && existingEntry.status === 'Success') {
-                            // Keep existing data since it has a valid timestamp and we don't
-                            console.log(`  ⊘ ${displayRepo}: Keeping existing data (new fetch succeeded but no timestamp to compare)`);
-                            consolidatedData.push(existingEntry);
+                            if (entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                                console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (timestamp unavailable) - updating entry`);
+                                consolidatedData.push(entry);
+                                updated++;
+                            } else {
+                                // Keep existing data since it has a valid timestamp and we don't
+                                console.log(`  ⊘ ${displayRepo}: Keeping existing data (new fetch succeeded but no timestamp to compare)`);
+                                consolidatedData.push(existingEntry);
+                            }
                         } else {
                             // Existing also has no timestamp, use new data
                             console.log(`  ✓ ${displayRepo}: Using new data (both lack timestamps but new fetch succeeded)`);
@@ -1124,40 +1177,53 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             // Process job_search data: version 2 uses job_search block,
             // unmarked (no version) profiles are legacy 2026 format
             if (profile.version === 2 && profile.job_search && profile.yuid) {
+                const gradYear = String(profile.graduation_year || '');
                 for (const [year, searchData] of Object.entries(profile.job_search)) {
-                    const seeking = (searchData.seeking || 'None').replace(/'/g, "''");
-                    const jobStatus = (searchData.job_status || 'None').replace(/'/g, "''");
-                    const ftCompany = (searchData.company || searchData.full_time_company || 'None').replace(/'/g, "''");
+                    let seeking = (searchData.seeking || 'None');
+                    if (seeking === 'FT' && year !== gradYear) {
+                        seeking = 'None';
+                    }
+                    if (!seeking || seeking === 'None' || seeking === 'Not Looking') {
+                        seeking = 'None';
+                    }
+                    const rawCompany = searchData.company || searchData.full_time_company || '';
+                    const company = normalizeCompanyValue(rawCompany);
+                    const jobStatus = (seeking === 'IN' || seeking === 'FT') && company !== 'None' ? 'YES' : 'NO';
+                    const seekingEsc = seeking.replace(/'/g, "''");
+                    const companyEsc = company.replace(/'/g, "''");
                     await conn.query(`
                         INSERT INTO job_search VALUES (
-                            ${profile.yuid}, ${parseInt(year)}, '${seeking}', '${jobStatus}', '${ftCompany}'
+                            ${profile.yuid}, ${parseInt(year)}, '${seekingEsc}', '${jobStatus}', '${companyEsc}'
                         )
                         ON CONFLICT (yuid, recruiting_year) DO UPDATE SET
                             seeking = EXCLUDED.seeking,
                             job_status = EXCLUDED.job_status,
                             full_time_company = EXCLUDED.full_time_company
                     `);
-                    if (seeking === 'IN' && ftCompany && ftCompany !== 'None') {
-                        const companyEsc = ftCompany.replace(/'/g, "''");
+                    if (seeking === 'IN' && company !== 'None') {
                         await conn.query(`
                             INSERT INTO internships VALUES (${profile.yuid}, ${parseInt(year)}, '${companyEsc}')
                         `);
                     }
                 }
             } else if (profile.yuid) {
-                // Legacy format (no version): treat as 2026 recruiting year
+                // Legacy V1 format (no version): convert to V2 with recruiting year 2026
                 const recruitingYear = 2026;
-                const seeking = (profile.seeking || '').replace(/'/g, "''");
-                const jobStatus = (profile.job_status || '').replace(/'/g, "''");
-                let ftCompany = 'None';
-                if (seeking === 'FT' && jobStatus === 'YES') {
-                    ftCompany = (profile.company || profile.job || 'None').replace(/'/g, "''");
-                    if (ftCompany.toLowerCase() === 'n/a') ftCompany = 'None';
-                }
-                if (seeking && seeking !== 'N/A' && seeking !== 'None') {
+                let seeking = profile.seeking || '';
+                if (seeking === 'N/A') seeking = 'None';
+
+                if (seeking && seeking !== 'None') {
+                    let rawCompany = '';
+                    if (seeking === 'FT') {
+                        rawCompany = profile.company != null ? String(profile.company).trim() : '';
+                    }
+                    const company = normalizeCompanyValue(rawCompany);
+                    const jobStatus = company !== 'None' ? 'YES' : 'NO';
+                    const seekingEsc = seeking.replace(/'/g, "''");
+                    const companyEsc = company.replace(/'/g, "''");
                     await conn.query(`
                         INSERT INTO job_search VALUES (
-                            ${profile.yuid}, ${recruitingYear}, '${seeking}', '${jobStatus}', '${ftCompany}'
+                            ${profile.yuid}, ${recruitingYear}, '${seekingEsc}', '${jobStatus}', '${companyEsc}'
                         )
                         ON CONFLICT (yuid, recruiting_year) DO UPDATE SET
                             seeking = EXCLUDED.seeking,
@@ -1356,6 +1422,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         }
                         consolidatedData.push(entry);
                         updated++;
+                    } else if (entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                        console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (unchanged timestamp) - updating entry`);
+                        consolidatedData.push(entry);
+                        updated++;
                     } else {
                         console.log(`  ⊘ ${displayRepo}: Keeping existing data (${existingEntry.lastUpdated} >= ${entry.lastUpdated})`);
                         consolidatedData.push(existingEntry);
@@ -1365,6 +1435,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     if (entry.status === 'Success' && entry.lastUpdated !== 'Unknown') {
                         // New fetch succeeded with valid timestamp - use it
                         console.log(`  ✓ ${displayRepo}: Using new data with valid timestamp`);
+                        consolidatedData.push(entry);
+                        updated++;
+                    } else if (entry.status === 'Success' && entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                        console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (timestamp unavailable) - updating entry`);
                         consolidatedData.push(entry);
                         updated++;
                     } else {

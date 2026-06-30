@@ -283,6 +283,13 @@
             delete data.company;
         }
 
+        // Rename full_time_company → company before internship merge so the merge can overwrite it
+        for (const entry of Object.values(data.job_search || {})) {
+            if ('full_time_company' in entry) {
+                entry.company = entry.full_time_company;
+                delete entry.full_time_company;
+            }
+        }
         // V2 with separate internships → unified format
         if (data.internships) {
             if (!data.job_search) data.job_search = {};
@@ -294,13 +301,6 @@
                 }
             }
             delete data.internships;
-        }
-        // Rename full_time_company → company in all entries
-        for (const entry of Object.values(data.job_search || {})) {
-            if ('full_time_company' in entry) {
-                entry.company = entry.full_time_company;
-                delete entry.full_time_company;
-            }
         }
 
         originalLoadedData = JSON.parse(JSON.stringify(data));
@@ -416,7 +416,7 @@
     }
 
     function isRealCompany(val) {
-        return val && val !== 'None';
+        return !!(val && val !== 'None');
     }
 
     function addRecruitingYear(prefillYear, prefillSeeking, prefillCompany) {
