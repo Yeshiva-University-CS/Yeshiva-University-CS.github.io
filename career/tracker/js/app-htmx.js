@@ -17,8 +17,19 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     let repoStatusGridApi = null;
     let repoStatusData = [];
     let pieChart = null;
-    let currentDashboardYear = 2026; // Default to 2026 dashboard
+    let currentDashboardYear = new Date().getFullYear(); // Default to current year dashboard
+    let selectedGradYear = currentDashboardYear;
     
+    // ============================================================================
+    // COMPANY NORMALIZATION
+    // ============================================================================
+
+    function normalizeCompanyValue(val) {
+        const v = (val == null ? '' : String(val)).trim();
+        if (!v || v.toLowerCase() === 'none' || v.toLowerCase() === 'n/a' || v.toLowerCase() === 'na') return 'None';
+        return v;
+    }
+
     // ============================================================================
     // TOKEN MANAGEMENT
     // ============================================================================
@@ -153,7 +164,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             // Store the current dashboard year if provided
             if (year) {
                 currentDashboardYear = year;
+                selectedGradYear = year;
                 console.log('Set currentDashboardYear to:', currentDashboardYear);
+                updateDashboardTitle();
             }
             
             // Wait a moment for HTMX to swap the content, then initialize grid
@@ -418,10 +431,18 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     graduation_year INTEGER,
                     cs_track TEXT,
                     email TEXT,
-                    whatsapp TEXT,
-                    job_type TEXT,
+                    whatsapp TEXT
+                )
+            `);
+
+            await conn.query(`
+                CREATE TABLE IF NOT EXISTS job_search(
+                    yuid INTEGER,
+                    recruiting_year INTEGER,
+                    seeking TEXT,
                     job_status TEXT,
-                    job TEXT
+                    full_time_company TEXT,
+                    PRIMARY KEY (yuid, recruiting_year)
                 )
             `);
 
@@ -493,14 +514,14 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 'Accept': 'application/vnd.github.v3.raw'
             } : {};
 
-            console.log('Attempting to load profile_data.json from careers repo...');
-            const response = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+            console.log('Attempting to load profile_data.v2.json from careers repo...');
+            const response = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
                 headers: headers
             });
 
             if (!response.ok) {
                 if (response.status === 404) {
-                    console.log('profile_data.json not found in careers repo');
+                    console.log('profile_data.v2.json not found in careers repo');
                     return null;
                 }
                 if (response.status === 401) {
@@ -545,7 +566,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         
         try {
             // Force a fresh request for metadata only (not content)
-            const getResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+            const getResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
                 headers: {
                     'Authorization': `token ${token}`,
                     'Accept': 'application/vnd.github.v3+json'
@@ -564,7 +585,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     console.log('Making second attempt with different Accept header...');
                     
                     // Try again with explicit object+json accept header
-                    const retryResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+                    const retryResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
                         headers: {
                             'Authorization': `token ${token}`,
                             'Accept': 'application/vnd.github.object+json'
@@ -632,7 +653,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         
         console.log('PUT request payload:', JSON.stringify({...payload, content: payload.content.substring(0, 100) + '...'}, null, 2));
         
-        const putResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json', {
+        const putResponse = await fetch('https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.v2.json', {
             method: 'PUT',
             headers: {
                 'Authorization': `token ${token}`,
@@ -648,7 +669,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         }
         
         const result = await putResponse.json();
-        console.log('Successfully saved profile_data.json to GitHub:', result.commit.sha);
+        console.log('Successfully saved profile_data.v2.json to GitHub:', result.commit.sha);
         return result;
     }
     
@@ -698,10 +719,11 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
             await conn.query('DELETE FROM profiles_raw');
             await conn.query('DELETE FROM profiles');
+            await conn.query('DELETE FROM job_search');
             await conn.query('DELETE FROM internships');
             await conn.query('DELETE FROM graduate_schools');
 
-            // Try to load from consolidated profile_data.json
+            // Try to load from consolidated profile_data.v2.json
             console.log('Loading from consolidated profile data...');
             const consolidatedData = await loadConsolidatedProfileData();
             
@@ -739,7 +761,6 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         lastUpdated: entry.lastUpdated || 'Unknown',
                         status: entry.status || 'Failed',
                         statusError: entry.error,
-                        isOverride: entry.isOverride || false,
                         resumeStatus: entry.resumeStatus || 'Unknown',
                         resumeStatusError: entry.resumeStatusError || '',
                         resumeLastUpdated: entry.resumeLastUpdated || 'Unknown'
@@ -759,7 +780,6 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                             lastUpdated: entry.lastUpdated || 'Unknown',
                             status: entry.status || 'Success',
                             statusError: '',
-                            isOverride: entry.isOverride || false,
                             resumeStatus: entry.resumeStatus || 'Unknown',
                             resumeStatusError: entry.resumeStatusError || '',
                             resumeLastUpdated: entry.resumeLastUpdated || 'Unknown'
@@ -789,6 +809,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 }
             }
 
+            // Render dynamic year tabs after data is loaded
+            await renderYearTabs();
+
             console.log('Data loaded successfully!');
             showLoading(false);
             showSuccess(`Successfully loaded ${successCount} student profiles`);
@@ -803,7 +826,47 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     // ============================================================================
     // SHARED REPO PROCESSING FUNCTION
     // ============================================================================
-    
+
+    // Converts a V1 student_profile (seeking/company/job_status/internships) to V2 (version:2, job_search).
+    // Mutates data.student_profile in place. Returns true if a conversion was performed.
+    function convertProfileV1ToV2(data) {
+        const profile = data && data.student_profile;
+        if (!profile || profile.version === 2 || (!profile.seeking && !profile.internships)) return false;
+
+        if (profile.seeking === 'N/A') profile.seeking = 'None';
+        if (profile.job_status === true) profile.job_status = 'YES';
+        else if (profile.job_status === false) profile.job_status = 'NO';
+        if (profile.job_status === 'N/A') profile.job_status = 'None';
+
+        // Convert legacy internships entries to job_search by year
+        if (profile.internships) {
+            if (!profile.job_search) profile.job_search = {};
+            for (const [year, company] of Object.entries(profile.internships)) {
+                const normalizedCompany = normalizeCompanyValue(company);
+                profile.job_search[year] = {
+                    seeking: 'IN',
+                    job_status: normalizedCompany !== 'None' ? 'YES' : 'NO',
+                    company: normalizedCompany
+                };
+            }
+            delete profile.internships;
+        }
+
+        // Convert legacy top-level seeking/company to recruiting year 2026
+        if (profile.seeking && profile.seeking !== 'None') {
+            if (!profile.job_search) profile.job_search = {};
+            const company = normalizeCompanyValue(profile.company);
+            const jobStatus = company !== 'None' ? 'YES' : 'NO';
+            profile.job_search['2026'] = { seeking: profile.seeking, job_status: jobStatus, company };
+        }
+
+        delete profile.seeking;
+        delete profile.job_status;
+        delete profile.company;
+        profile.version = 2;
+        return true;
+    }
+
     // Shared function to process a single repository profile
     async function processSingleRepoProfile(repo, token) {
         const profilePath = 'profile.yml';
@@ -826,8 +889,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 if (text.trim()) {
                     try {
                         const data = jsyaml.load(text);
+                        const wasV1Converted = convertProfileV1ToV2(data);
                         const profile = data.student_profile || {};
-                        
+
                         if (profile.first_name && profile.last_name) {
                             entry.studentName = `${profile.last_name}, ${profile.first_name}`;
                         } else {
@@ -836,6 +900,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
                         entry.data = data;
                         entry.status = 'Success';
+                        entry.wasV1Converted = wasV1Converted;
                         
                         // Get last updated time
                         try {
@@ -992,6 +1057,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         }
                         consolidatedData.push(entry);
                         updated++;
+                    } else if (entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                        console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (unchanged timestamp) - updating entry`);
+                        consolidatedData.push(entry);
+                        updated++;
                     } else {
                         console.log(`  ⊘ ${displayRepo}: Keeping existing data (${existingEntry.lastUpdated} >= ${entry.lastUpdated})`);
                         consolidatedData.push(existingEntry);
@@ -1007,9 +1076,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         // New fetch succeeded but timestamp fetch failed due to ANY error 
                         // (429 rate limit, 403, 500, network error, etc.)
                         if (existingEntry.lastUpdated !== 'Unknown' && existingEntry.status === 'Success') {
-                            // Keep existing data since it has a valid timestamp and we don't
-                            console.log(`  ⊘ ${displayRepo}: Keeping existing data (new fetch succeeded but no timestamp to compare)`);
-                            consolidatedData.push(existingEntry);
+                            if (entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                                console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (timestamp unavailable) - updating entry`);
+                                consolidatedData.push(entry);
+                                updated++;
+                            } else {
+                                // Keep existing data since it has a valid timestamp and we don't
+                                console.log(`  ⊘ ${displayRepo}: Keeping existing data (new fetch succeeded but no timestamp to compare)`);
+                                consolidatedData.push(existingEntry);
+                            }
                         } else {
                             // Existing also has no timestamp, use new data
                             console.log(`  ✓ ${displayRepo}: Using new data (both lack timestamps but new fetch succeeded)`);
@@ -1090,27 +1165,11 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
 
             const email = (profile.email || profile.yu_email || '').replace(/'/g, "''");
-            let job = profile.job || profile.company || 'N/A';
-            if (job === 'N/A') {
-                job = '';
-            }
-            const jobEsc = job.replace(/'/g, "''");
             const repoEsc = repo.replace(/'/g, "''");
             const studentNameEsc = studentName.replace(/'/g, "''");
             const normalizedTrack = profile.cs_track === 'N/A' ? 'None' : (profile.cs_track || '');
             const trackEsc = normalizedTrack.replace(/'/g, "''");
             const whatsappEsc = (profile.whatsapp || '').replace(/'/g, "''");
-
-            const jobType = profile.seeking || '';
-            const jobTypeEsc = jobType.replace(/'/g, "''");
-
-            let jobStatus = profile.job_status || '';
-            if (jobStatus === 'YES') {
-                jobStatus = 'Yes';
-            } else if (jobStatus === 'NO') {
-                jobStatus = 'No';
-            }
-            const jobStatusEsc = jobStatus.replace(/'/g, "''");
 
             await conn.query(`
                 INSERT OR REPLACE INTO profiles VALUES (
@@ -1120,16 +1179,72 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     ${profile.graduation_year || 'NULL'},
                     '${trackEsc}',
                     '${email}',
-                    '${whatsappEsc}',
-                    '${jobTypeEsc}',
-                    '${jobStatusEsc}',
-                    '${jobEsc}'
+                    '${whatsappEsc}'
                 )
             `);
 
+            // Process job_search data: version 2 uses job_search block,
+            // unmarked (no version) profiles are legacy 2026 format
+            if (profile.version === 2 && profile.job_search && profile.yuid) {
+                const gradYear = String(profile.graduation_year || '');
+                for (const [year, searchData] of Object.entries(profile.job_search)) {
+                    let seeking = (searchData.seeking || 'None');
+                    if (seeking === 'FT' && year !== gradYear) {
+                        seeking = 'None';
+                    }
+                    if (!seeking || seeking === 'None' || seeking === 'Not Looking') {
+                        seeking = 'None';
+                    }
+                    const rawCompany = searchData.company || searchData.full_time_company || '';
+                    const company = normalizeCompanyValue(rawCompany);
+                    const jobStatus = (seeking === 'IN' || seeking === 'FT') && company !== 'None' ? 'YES' : 'NO';
+                    const seekingEsc = seeking.replace(/'/g, "''");
+                    const companyEsc = company.replace(/'/g, "''");
+                    await conn.query(`
+                        INSERT INTO job_search VALUES (
+                            ${profile.yuid}, ${parseInt(year)}, '${seekingEsc}', '${jobStatus}', '${companyEsc}'
+                        )
+                        ON CONFLICT (yuid, recruiting_year) DO UPDATE SET
+                            seeking = EXCLUDED.seeking,
+                            job_status = EXCLUDED.job_status,
+                            full_time_company = EXCLUDED.full_time_company
+                    `);
+                    if (seeking === 'IN' && company !== 'None') {
+                        await conn.query(`
+                            INSERT INTO internships VALUES (${profile.yuid}, ${parseInt(year)}, '${companyEsc}')
+                        `);
+                    }
+                }
+            } else if (profile.yuid) {
+                // Legacy V1 format (no version): convert to V2 with recruiting year 2026
+                const recruitingYear = 2026;
+                let seeking = profile.seeking || '';
+                if (seeking === 'N/A') seeking = 'None';
+
+                if (seeking && seeking !== 'None') {
+                    let rawCompany = '';
+                    if (seeking === 'FT') {
+                        rawCompany = profile.company != null ? String(profile.company).trim() : '';
+                    }
+                    const company = normalizeCompanyValue(rawCompany);
+                    const jobStatus = company !== 'None' ? 'YES' : 'NO';
+                    const seekingEsc = seeking.replace(/'/g, "''");
+                    const companyEsc = company.replace(/'/g, "''");
+                    await conn.query(`
+                        INSERT INTO job_search VALUES (
+                            ${profile.yuid}, ${recruitingYear}, '${seekingEsc}', '${jobStatus}', '${companyEsc}'
+                        )
+                        ON CONFLICT (yuid, recruiting_year) DO UPDATE SET
+                            seeking = EXCLUDED.seeking,
+                            job_status = EXCLUDED.job_status,
+                            full_time_company = EXCLUDED.full_time_company
+                    `);
+                }
+            }
+
             if (profile.internships && profile.yuid) {
                 for (const [year, company] of Object.entries(profile.internships)) {
-                    const companyEsc = company.replace(/'/g, "''");
+                    const companyEsc = String(company).replace(/'/g, "''");
                     await conn.query(`
                         INSERT INTO internships VALUES (${profile.yuid}, ${parseInt(year)}, '${companyEsc}')
                     `);
@@ -1154,24 +1269,46 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         console.log('Querying profiles from database...');
         console.log('Filtering by dashboard year:', currentDashboardYear);
 
-        const csTracksClause = "AND cs_track IN ('AI', 'DIS', 'BA')";
-        
+        const eligibleYears = [currentDashboardYear, currentDashboardYear + 1];
+        const eligibleResult = await conn.query(`
+            SELECT DISTINCT graduation_year FROM profiles
+            WHERE graduation_year IN (${eligibleYears.join(',')})
+            AND cs_track IN ('AI', 'DIS', 'BA')
+            ORDER BY graduation_year
+        `);
+        const availableGradYears = eligibleResult.toArray().map(r => r.graduation_year);
+
+        if (!availableGradYears.includes(selectedGradYear)) {
+            selectedGradYear = availableGradYears.length > 0 ? availableGradYears[0] : currentDashboardYear;
+        }
+        populateGradYearDropdown(availableGradYears);
+
+        const csTracksClause = "AND p.cs_track IN ('AI', 'DIS', 'BA')";
+
         const result = await conn.query(`
-            SELECT 
-                repo,
-                student_name,
-                yuid,
-                graduation_year,
-                cs_track,
-                email,
-                whatsapp,
-                job_type,
-                job_status,
-                job
-            FROM profiles
-            WHERE graduation_year = ${currentDashboardYear}
+            SELECT
+                p.repo,
+                p.student_name,
+                p.yuid,
+                p.graduation_year,
+                p.cs_track,
+                p.email,
+                p.whatsapp,
+                COALESCE(js.seeking, '') as job_type,
+                CASE
+                    WHEN js.job_status = 'YES' THEN 'Yes'
+                    WHEN js.job_status = 'NO' THEN 'No'
+                    ELSE COALESCE(js.job_status, '')
+                END as job_status,
+                CASE
+                    WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN ''
+                    ELSE js.full_time_company
+                END as job
+            FROM profiles p
+            LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
+            WHERE p.graduation_year = ${selectedGradYear}
             ${csTracksClause}
-            ORDER BY student_name
+            ORDER BY p.student_name
         `);
 
         const profiles = result.toArray();
@@ -1294,6 +1431,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         }
                         consolidatedData.push(entry);
                         updated++;
+                    } else if (entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                        console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (unchanged timestamp) - updating entry`);
+                        consolidatedData.push(entry);
+                        updated++;
                     } else {
                         console.log(`  ⊘ ${displayRepo}: Keeping existing data (${existingEntry.lastUpdated} >= ${entry.lastUpdated})`);
                         consolidatedData.push(existingEntry);
@@ -1303,6 +1444,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     if (entry.status === 'Success' && entry.lastUpdated !== 'Unknown') {
                         // New fetch succeeded with valid timestamp - use it
                         console.log(`  ✓ ${displayRepo}: Using new data with valid timestamp`);
+                        consolidatedData.push(entry);
+                        updated++;
+                    } else if (entry.status === 'Success' && entry.wasV1Converted && existingEntry.data?.student_profile?.version !== 2) {
+                        console.log(`  ✓ ${displayRepo}: Converted V1 to V2 (timestamp unavailable) - updating entry`);
                         consolidatedData.push(entry);
                         updated++;
                     } else {
@@ -1403,6 +1548,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 field: 'job_type',
                 headerName: 'Type',
                 filter: 'agSetColumnFilter',
+                cellRenderer: (params) => {
+                    if (params.value === 'None') return '--';
+                    if (!params.value && params.data) {
+                        const gradYear = params.data.graduation_year;
+                        if (gradYear == currentDashboardYear) return 'FT';
+                        if (gradYear > currentDashboardYear) return 'IN';
+                    }
+                    return params.value || '';
+                },
                 width: 100
             },
             {
@@ -1410,6 +1564,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 headerName: 'Status',
                 filter: 'agSetColumnFilter',
                 cellRenderer: (params) => {
+                    if (params.data && params.data.job_type === 'None') {
+                        return '<span class="status-badge status-na">N/A</span>';
+                    }
+                    if (params.data && !params.data.job_type) {
+                        const gradYear = params.data.graduation_year;
+                        if (gradYear == currentDashboardYear || gradYear > currentDashboardYear) {
+                            return '<span class="status-badge status-no-job">No</span>';
+                        }
+                    }
                     if (!params.value) return '';
                     let statusClass = 'status-na';
                     if (params.value === 'Yes') statusClass = 'status-have-job';
@@ -1492,7 +1655,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     const icon = isSuccess ? '✎' : '+';
                     const title = isSuccess ? 'Edit Profile' : 'Add Profile';
                     const buttonClass = isSuccess ? 'text-blue-600 hover:text-blue-800' : 'text-green-600 hover:text-green-800';
-                    return `<button onclick="window.app.openProfileEditor('${params.data.repo}', '${isSuccess ? 'edit' : 'add'}')" title="${title}" class="${buttonClass} text-lg font-bold transition-colors">${icon}</button>`;
+                    return `<button onclick="window.app.openProfileInProfileTool('${params.data.repo}')" title="${title}" class="${buttonClass} text-lg font-bold transition-colors">${icon}</button>`;
                 }
             },
             {
@@ -1573,8 +1736,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                         });
                         const repo = params.data.repo;
                         const url = `https://github.com/Yeshiva-University-CS/${repo}/blob/yccs-tracker/profile.yml`;
-                        const color = params.data.isOverride ? '#dc2626' : '#667eea';
-                        return `<a href="${url}" target="_blank" style="color: ${color}; text-decoration: none;">${formatted}</a>`;
+                        return `<a href="${url}" target="_blank" style="color: #667eea; text-decoration: none;">${formatted}</a>`;
                     } catch {
                         return params.value;
                     }
@@ -1703,21 +1865,27 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     async function updateStatistics(profiles) {
         const total = profiles.length;
 
-        const notLooking = profiles.filter(p => !p.job_type || p.job_type === 'N/A' || p.job_type === '').length;
-        const seeking = total - notLooking;
+        const effectiveType = (p) => {
+            if (p.job_type && p.job_type !== '') return p.job_type;
+            if (p.graduation_year == currentDashboardYear) return 'FT';
+            if (p.graduation_year > currentDashboardYear) return 'IN';
+            return '';
+        };
 
-        const seekingFT = profiles.filter(p => p.job_type === 'FT').length;
+        const notLooking = profiles.filter(p => effectiveType(p) === 'None').length;
+
+        const seekingFT = profiles.filter(p => effectiveType(p) === 'FT').length;
         const haveFTJob = profiles.filter(p =>
-            p.job_type === 'FT' && p.job_status === 'Yes'
+            effectiveType(p) === 'FT' && p.job_status === 'Yes'
         ).length;
 
-        const seekingIN = profiles.filter(p => p.job_type === 'IN').length;
+        const seekingIN = profiles.filter(p => effectiveType(p) === 'IN').length;
         const haveINJob = profiles.filter(p =>
-            p.job_type === 'IN' && p.job_status === 'Yes'
+            effectiveType(p) === 'IN' && p.job_status === 'Yes'
         ).length;
 
         const haveAnyJob = profiles.filter(p =>
-            (p.job_type === 'FT' || p.job_type === 'IN') && p.job_status === 'Yes'
+            (effectiveType(p) === 'FT' || effectiveType(p) === 'IN') && p.job_status === 'Yes'
         ).length;
         const plansFinalized = haveAnyJob + notLooking;
 
@@ -1737,7 +1905,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         const statInternshipsPercent = document.getElementById('statInternshipsPercent');
         const notLookingContainer = document.getElementById('notLookingContainer');
         const statNotLookingText = document.getElementById('statNotLookingText');
-        
+
         // Get tile containers for visibility control
         const ftJobsTile = document.getElementById('ftJobsTile');
         const internshipsTile = document.getElementById('internshipsTile');
@@ -1787,8 +1955,28 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     }
     
     function updateFilters(profiles) {
-        // No longer populating graduation year filter since it's controlled by dashboard tabs
-        // Keeping function for potential future filter additions
+    }
+
+    function populateGradYearDropdown(availableYears) {
+        const select = document.getElementById('filterGradYear');
+        if (!select) return;
+
+        select.innerHTML = '';
+        for (const year of availableYears) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            if (year === selectedGradYear) option.selected = true;
+            select.appendChild(option);
+        }
+    }
+
+    async function onGradYearChange() {
+        const select = document.getElementById('filterGradYear');
+        if (select) {
+            selectedGradYear = parseInt(select.value);
+        }
+        await applyFilters();
     }
     
     async function applyFilters() {
@@ -1801,34 +1989,49 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             // Collect checked values for each filter group
             const trackCheckboxes = document.querySelectorAll('[id^="filterTrack_"]:checked');
             const tracks = Array.from(trackCheckboxes).map(cb => cb.value);
-            
+
             const jobStatusCheckboxes = document.querySelectorAll('[id^="filterJobStatus_"]:checked');
             const jobStatuses = Array.from(jobStatusCheckboxes).map(cb => cb.value);
-            
+
             const jobTypeCheckboxes = document.querySelectorAll('[id^="filterSeeking_"]:checked');
             const jobTypes = Array.from(jobTypeCheckboxes).map(cb => cb.value);
 
-            let query = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear} AND cs_track IN ('AI', 'DIS', 'BA')`;
+            const gradYearSelect = document.getElementById('filterGradYear');
+            if (gradYearSelect) {
+                selectedGradYear = parseInt(gradYearSelect.value) || selectedGradYear;
+            }
+
+            let query = `
+                SELECT p.repo, p.student_name, p.yuid, p.graduation_year, p.cs_track, p.email, p.whatsapp,
+                    COALESCE(js.seeking, '') as job_type,
+                    CASE WHEN js.job_status = 'YES' THEN 'Yes' WHEN js.job_status = 'NO' THEN 'No' ELSE COALESCE(js.job_status, '') END as job_status,
+                    CASE WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN '' ELSE js.full_time_company END as job
+                FROM profiles p
+                LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
+                WHERE p.graduation_year = ${selectedGradYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
 
             // Add track filter if not all are selected
             if (tracks.length > 0 && tracks.length < 3) {
-                const trackConditions = tracks.map(t => `cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
+                const trackConditions = tracks.map(t => `p.cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
                 query += ` AND (${trackConditions})`;
             }
-            
+
             // Add job status filter if not all are selected
             if (jobStatuses.length > 0 && jobStatuses.length < 2) {
-                const statusConditions = jobStatuses.map(s => `job_status = '${s.replace(/'/g, "''")}'`).join(' OR ');
+                const statusConditions = jobStatuses.map(s => {
+                    const dbVal = s === 'Yes' ? 'YES' : 'NO';
+                    return `js.job_status = '${dbVal}'`;
+                }).join(' OR ');
                 query += ` AND (${statusConditions})`;
             }
-            
+
             // Add job type filter if not all are selected
             if (jobTypes.length > 0 && jobTypes.length < 2) {
-                const typeConditions = jobTypes.map(t => `job_type = '${t.replace(/'/g, "''")}'`).join(' OR ');
+                const typeConditions = jobTypes.map(t => `js.seeking = '${t.replace(/'/g, "''")}'`).join(' OR ');
                 query += ` AND (${typeConditions})`;
             }
 
-            query += ' ORDER BY student_name';
+            query += ' ORDER BY p.student_name';
 
             const result = await conn.query(query);
             const filteredProfiles = result.toArray();
@@ -1838,10 +2041,17 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
 
             // For statistics, only apply track filter
-            let statsQuery = `SELECT * FROM profiles WHERE graduation_year = ${currentDashboardYear} AND cs_track IN ('AI', 'DIS', 'BA')`;
+            let statsQuery = `
+                SELECT p.repo, p.student_name, p.yuid, p.graduation_year, p.cs_track, p.email, p.whatsapp,
+                    COALESCE(js.seeking, '') as job_type,
+                    CASE WHEN js.job_status = 'YES' THEN 'Yes' WHEN js.job_status = 'NO' THEN 'No' ELSE COALESCE(js.job_status, '') END as job_status,
+                    CASE WHEN js.full_time_company IS NULL OR js.full_time_company = 'None' THEN '' ELSE js.full_time_company END as job
+                FROM profiles p
+                LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
+                WHERE p.graduation_year = ${selectedGradYear} AND p.cs_track IN ('AI', 'DIS', 'BA')`;
 
             if (tracks.length > 0 && tracks.length < 3) {
-                const trackConditions = tracks.map(t => `cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
+                const trackConditions = tracks.map(t => `p.cs_track = '${t.replace(/'/g, "''")}'`).join(' OR ');
                 statsQuery += ` AND (${trackConditions})`;
             }
 
@@ -1889,15 +2099,75 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     }
     
     // ============================================================================
+    // DYNAMIC YEAR TABS
+    // ============================================================================
+
+    function updateDashboardTitle() {
+        const titleEl = document.getElementById('dashboardTitle');
+        if (titleEl) {
+            titleEl.textContent = `${currentDashboardYear} Recruiting Cycle`;
+        }
+    }
+
+    async function renderYearTabs() {
+        const container = document.getElementById('dashboardYearTabs');
+        if (!container) return;
+
+        const calYear = new Date().getFullYear();
+        const dashboardYears = [calYear + 1, calYear]; // descending order
+
+        container.innerHTML = '';
+        for (const year of dashboardYears) {
+            const isActive = year === currentDashboardYear;
+            const btn = document.createElement('button');
+            btn.className = `tab-button flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${isActive ? 'text-white bg-blue-600' : 'text-gray-700 hover:bg-gray-100'}`;
+            btn.setAttribute('data-year', year);
+            btn.innerHTML = `
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>${year} Dashboard</span>
+            `;
+            btn.addEventListener('click', function () {
+                // Update Alpine.js state via dispatch
+                window.dispatchEvent(new CustomEvent('set-dashboard-view', { detail: true }));
+                // Activate button styling
+                document.querySelectorAll('.tab-button').forEach(b => {
+                    b.classList.remove('bg-blue-600', 'text-white');
+                    b.classList.add('text-gray-700', 'hover:bg-gray-100');
+                });
+                this.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                this.classList.add('bg-blue-600', 'text-white');
+                // Load dashboard content then switch
+                htmx.ajax('GET', 'fragments/dashboard-content.html?v=2025-02-09-header-summary', {
+                    target: '#tab-container',
+                    swap: 'innerHTML'
+                }).then(() => {
+                    window.app.switchTab('dashboard', year);
+                });
+            });
+            container.appendChild(btn);
+        }
+
+        updateDashboardTitle();
+    }
+
+    // ============================================================================
     // CHART MANAGEMENT
     // ============================================================================
     
     function updatePieChart(profiles) {
-        const ftWithJobs = profiles.filter(p => p.job_type === 'FT' && p.job_status === 'Yes').length;
-        const inWithJobs = profiles.filter(p => p.job_type === 'IN' && p.job_status === 'Yes').length;
-        const notLooking = profiles.filter(p => !p.job_type || p.job_type === 'N/A' || p.job_type === '').length;
+        const effectiveType = (p) => {
+            if (p.job_type && p.job_type !== '') return p.job_type;
+            if (p.graduation_year == currentDashboardYear) return 'FT';
+            if (p.graduation_year > currentDashboardYear) return 'IN';
+            return '';
+        };
+        const ftWithJobs = profiles.filter(p => effectiveType(p) === 'FT' && p.job_status === 'Yes').length;
+        const inWithJobs = profiles.filter(p => effectiveType(p) === 'IN' && p.job_status === 'Yes').length;
+        const notLooking = profiles.filter(p => effectiveType(p) === 'None').length;
         const lookingNoJob = profiles.filter(p =>
-            (p.job_type === 'FT' || p.job_type === 'IN') &&
+            (effectiveType(p) === 'FT' || effectiveType(p) === 'IN') &&
             (p.job_status === 'No' || p.job_status === '')
         ).length;
 
@@ -2194,6 +2464,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         closeRefreshModal,
         applyFilters,
         handleFilterChange,
+        onGradYearChange,
         exportToCSV,
         downloadResumes,
         reloadSelectedRepos,
@@ -2286,704 +2557,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         }, 100);
     });
     
-    // Profile Editor Modal Functions
-    let currentEditingRepo = null;
-    let currentEditingAction = null;
-
-    window.app.openProfileEditor = async function(repo, action) {
-        console.log('🔵 openProfileEditor called with repo:', repo, 'action:', action);
-        currentEditingRepo = repo;
-        currentEditingAction = action;
-        
-        // Load modal HTML if not already loaded
-        const container = document.getElementById('profileEditorModalContainer');
-        if (!container) {
-            console.error('❌ profileEditorModalContainer not found!');
-            return;
-        }
-        
-        if (!container.innerHTML) {
-            try {
-                console.log('Loading modal HTML...');
-                const response = await fetch('fragments/profile-editor-modal.html?v=2025-02-12-last-updated-right-justify');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch modal: ' + response.statusText);
-                }
-                const html = await response.text();
-                container.innerHTML = html;
-                console.log('✅ Modal HTML loaded');
-                
-                // Execute any scripts in the loaded HTML
-                const scripts = container.querySelectorAll('script');
-                console.log('Found', scripts.length, 'script tags');
-                scripts.forEach((script) => {
-                    try {
-                        if (script.textContent) {
-                            console.log('Executing script...');
-                            eval(script.textContent);
-                            console.log('✅ Script executed');
-                        }
-                    } catch (e) {
-                        console.error('Error executing script:', e);
-                    }
-                });
-            } catch (e) {
-                console.error('Failed to load modal:', e);
-                return;
-            }
-        }
-        
-        // Clear form and setup for action
-        if (typeof window.app.clearProfileEditorForm === 'function') {
-            window.app.clearProfileEditorForm();
-            console.log('✅ Form cleared');
-        } else {
-            console.error('❌ clearProfileEditorForm function not available');
-            return;
-        }
-        
-        const modal = document.getElementById('profileEditorModal');
-        if (!modal) {
-            console.error('❌ profileEditorModal element not found!');
-            return;
-        }
-        
-        const title = document.getElementById('modalTitle');
-        if (!title) {
-            console.error('❌ modalTitle element not found!');
-            return;
-        }
-        
-        if (action === 'add') {
-            title.textContent = 'Add Profile';
-            document.getElementById('modalLastUpdated').classList.add('hidden');
-        } else {
-            title.textContent = 'Edit Profile';
-            await window.app.populateFormForEdit(repo);
-        }
-        
-        // Show modal
-        modal.classList.remove('hidden');
-        console.log('✅ Modal displayed');
-    };
-
-    window.app.closeProfileEditor = function() {
-        const modal = document.getElementById('profileEditorModal');
-        modal.classList.add('hidden');
-        window.app.clearProfileEditorForm();
-        currentEditingRepo = null;
-        currentEditingAction = null;
-    };
-
-    window.app.showModalStatusMessage = function(message, isSuccess = true, autoCloseDelay = null) {
-        const statusEl = document.getElementById('modalStatusMessage');
-        if (!statusEl) return;
-        
-        // Clear any existing timeouts
-        if (window.app._statusMessageTimeout) {
-            clearTimeout(window.app._statusMessageTimeout);
-        }
-        if (window.app._modalCloseTimeout) {
-            clearTimeout(window.app._modalCloseTimeout);
-        }
-        
-        statusEl.textContent = message;
-        statusEl.classList.toggle('bg-green-100', isSuccess);
-        statusEl.classList.toggle('text-green-800', isSuccess);
-        statusEl.classList.toggle('bg-red-100', !isSuccess);
-        statusEl.classList.toggle('text-red-800', !isSuccess);
-        statusEl.classList.remove('hidden');
-        
-        // Auto-hide badge and close modal if success
-        if (isSuccess && autoCloseDelay !== false) {
-            const delay = typeof autoCloseDelay === 'number' ? autoCloseDelay : 1000;
-            // First hide the badge after 1 second
-            window.app._statusMessageTimeout = setTimeout(() => {
-                statusEl.classList.add('hidden');
-                // Then close modal shortly after badge is hidden
-                window.app._modalCloseTimeout = setTimeout(() => {
-                    window.app.closeProfileEditor();
-                }, 200);
-            }, delay);
-        }
-    };
-
-    window.app.populateFormForEdit = async function(repo) {
-        try {
-            console.log('🔵 populateFormForEdit called with repo:', repo);
-            
-            // Load the full profile data from GitHub's profile_data.json
-            const token = getToken();
-            const profileDataUrl = 'https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json';
-            
-            let response = await fetch(profileDataUrl, {
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Accept': 'application/vnd.github.v3+json'
-                },
-                cache: 'no-store'
-            });
-            
-            if (!response.ok) {
-                console.error('Failed to load profile data from GitHub:', response.status);
-                window.app.showModalStatusMessage('Error loading profile data from GitHub', false, false);
-                return;
-            }
-            
-            let metadata = await response.json();
-            
-            // If we got an array (cached raw content), retry with different header
-            if (Array.isArray(metadata)) {
-                console.error('⚠️ Got array instead of file metadata, retrying with different Accept header');
-                response = await fetch(profileDataUrl, {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.object+json'
-                    },
-                    cache: 'reload'
-                });
-                
-                if (!response.ok) {
-                    console.error('Retry failed:', response.status);
-                    window.app.showModalStatusMessage('Error loading profile data from GitHub', false, false);
-                    return;
-                }
-                
-                metadata = await response.json();
-            }
-            
-            if (!metadata.content) {
-                console.error('❌ No content field in GitHub response:', metadata);
-                window.app.showModalStatusMessage('Error: Profile data file not found on GitHub', false, false);
-                return;
-            }
-            
-            try {
-                const decodedContent = atob(metadata.content.replace(/\n/g, ''));
-                var allProfiles = JSON.parse(decodedContent);
-                console.log('✅ Loaded all profiles from GitHub:', allProfiles.length);
-            } catch (decodeError) {
-                console.error('❌ Error decoding content:', decodeError);
-                console.error('Content preview:', metadata.content.substring(0, 100));
-                window.app.showModalStatusMessage('Error: Could not decode profile data', false, false);
-                return;
-            }
-            
-            // Find the profile matching this repo
-            const profileEntry = allProfiles.find(entry => entry.repo === repo);
-            
-            if (!profileEntry) {
-                console.error('❌ Profile entry not found for repo:', repo);
-                window.app.showModalStatusMessage('Error: Could not find profile data for this repository', false, false);
-                return;
-            }
-            
-            console.log('✅ Found profile entry:', profileEntry);
-            
-            if (!profileEntry.data || !profileEntry.data.student_profile) {
-                console.error('❌ student_profile data missing. Structure:', profileEntry);
-                window.app.showModalStatusMessage('Error: Profile structure is invalid', false, false);
-                return;
-            }
-            
-            const profile = profileEntry.data.student_profile;
-            console.log('📋 Profile to populate:', profile);
-            
-            // Populate form fields
-            document.getElementById('modalYuid').value = profile.yuid || '';
-            document.getElementById('modalFirstName').value = profile.first_name || '';
-            document.getElementById('modalLastName').value = profile.last_name || '';
-            document.getElementById('modalGraduationYear').value = profile.graduation_year || '';
-            const normalizedCsTrack = profile.cs_track === 'N/A' ? 'None' : (profile.cs_track || '');
-            document.getElementById('modalCsTrack').value = normalizedCsTrack;
-            document.getElementById('modalYuEmail').value = profile.yu_email || '';
-            document.getElementById('modalEmail').value = profile.email || '';
-            
-            // Set and format phone number
-            const whatsappField = document.getElementById('modalWhatsapp');
-            whatsappField.value = profile.whatsapp || '';
-            if (whatsappField.value.trim()) {
-                whatsappField.value = window.app.formatWhatsApp(whatsappField.value);
-            }
-            
-            document.getElementById('modalSeeking').value = profile.seeking || '';
-            
-            console.log('✅ Basic fields populated');
-            
-            // Handle job status based on seeking
-            const jobStatusSelect = document.getElementById('modalJobStatus');
-            const naOption = document.getElementById('modalJobStatus_na_option');
-            if (profile.seeking === 'N/A' || !profile.seeking) {
-                jobStatusSelect.disabled = true;
-                jobStatusSelect.value = 'N/A';
-            } else if (profile.seeking === 'IN' || profile.seeking === 'FT') {
-                jobStatusSelect.disabled = false;
-                naOption.style.display = 'none';
-                jobStatusSelect.value = profile.job_status || '';
-            }
-            
-            // Handle company
-            if (profile.job_status === 'YES') {
-                document.getElementById('modalCompany').disabled = false;
-                document.getElementById('modalCompany').value = profile.company || '';
-            } else {
-                document.getElementById('modalCompany').disabled = true;
-                document.getElementById('modalCompany').value = 'N/A';
-            }
-            
-            console.log('✅ Job status and company populated');
-            
-            // Populate internships
-            if (profile.internships && typeof profile.internships === 'object') {
-                console.log('Internships found:', profile.internships);
-                for (const [year, company] of Object.entries(profile.internships)) {
-                    window.app.addInternshipField();
-                    const fields = document.getElementById('modalInternshipsList').children;
-                    const lastField = fields[fields.length - 1];
-                    lastField.querySelector('.modal-internship-year').value = year;
-                    lastField.querySelector('.modal-internship-company').value = company;
-                }
-                console.log('✅ Internships populated');
-            }
-
-            // Populate graduate schools
-            if (profile.graduate_schools && Array.isArray(profile.graduate_schools)) {
-                console.log('Graduate schools found:', profile.graduate_schools);
-                for (const school of profile.graduate_schools) {
-                    window.app.addGraduateSchoolField(school.name, school.status);
-                }
-                console.log('✅ Graduate schools populated');
-            }
-
-            // Show last updated badge
-            if (profileEntry.lastUpdated) {
-                const lastUpdatedSpan = document.getElementById('modalLastUpdated');
-                const formattedDate = new Date(profileEntry.lastUpdated).toLocaleString();
-                lastUpdatedSpan.innerHTML = '<strong>Last Updated:</strong> ' + formattedDate;
-                lastUpdatedSpan.classList.remove('hidden');
-                console.log('✅ Last updated badge displayed');
-            }
-            
-            console.log('✅ populateFormForEdit completed successfully');
-        } catch (e) {
-            console.error('❌ Error populating form:', e);
-            window.app.showModalStatusMessage('Error populating form: ' + e.message, false, false);
-        }
-    };
-
-    window.app.validateProfileForm = function() {
-        const errors = [];
-        
-        // Clear previous errors
-        document.querySelectorAll('#profileEditorModal .text-red-600[id$="-error"]').forEach(el => {
-            el.classList.add('hidden');
-        });
-        document.querySelectorAll('#profileEditorModal input, #profileEditorModal select').forEach(el => {
-            el.classList.remove('border-red-500');
-        });
-        
-        // Validate YUID
-        const yuid = document.getElementById('modalYuid').value;
-        const yuidError = window.app.validateYUID(yuid);
-        if (yuidError) {
-            errors.push(yuidError);
-            document.getElementById('modalYuid').classList.add('border-red-500');
-            document.getElementById('modalYuid-error').textContent = yuidError;
-            document.getElementById('modalYuid-error').classList.remove('hidden');
-        }
-        
-        // Validate First Name
-        const firstName = window.app.capitalizeFirstLetter(document.getElementById('modalFirstName').value.trim());
-        document.getElementById('modalFirstName').value = firstName;
-        const firstNameError = window.app.validateName(firstName, 'First name');
-        if (firstNameError) {
-            errors.push(firstNameError);
-            document.getElementById('modalFirstName').classList.add('border-red-500');
-            document.getElementById('modalFirstName-error').textContent = firstNameError;
-            document.getElementById('modalFirstName-error').classList.remove('hidden');
-        }
-        
-        // Validate Last Name
-        const lastName = window.app.capitalizeFirstLetter(document.getElementById('modalLastName').value.trim());
-        document.getElementById('modalLastName').value = lastName;
-        const lastNameError = window.app.validateName(lastName, 'Last name');
-        if (lastNameError) {
-            errors.push(lastNameError);
-            document.getElementById('modalLastName').classList.add('border-red-500');
-            document.getElementById('modalLastName-error').textContent = lastNameError;
-            document.getElementById('modalLastName-error').classList.remove('hidden');
-        }
-        
-        // Validate Graduation Year
-        const gradYear = document.getElementById('modalGraduationYear').value;
-        const gradYearError = window.app.validateGradYear(gradYear);
-        if (gradYearError) {
-            errors.push(gradYearError);
-            document.getElementById('modalGraduationYear').classList.add('border-red-500');
-            document.getElementById('modalGraduationYear-error').textContent = gradYearError;
-            document.getElementById('modalGraduationYear-error').classList.remove('hidden');
-        }
-        
-        // Validate CS Track
-        const csTrack = document.getElementById('modalCsTrack').value;
-        if (!csTrack) {
-            errors.push('CS Track is required');
-            document.getElementById('modalCsTrack').classList.add('border-red-500');
-            document.getElementById('modalCsTrack-error').textContent = 'Please select a CS track';
-            document.getElementById('modalCsTrack-error').classList.remove('hidden');
-        }
-        
-        // Validate YU Email
-        const yuEmail = document.getElementById('modalYuEmail').value;
-        const yuEmailError = window.app.validateYUEmail(yuEmail);
-        if (yuEmailError) {
-            errors.push(yuEmailError);
-            document.getElementById('modalYuEmail').classList.add('border-red-500');
-            document.getElementById('modalYuEmail-error').textContent = yuEmailError;
-            document.getElementById('modalYuEmail-error').classList.remove('hidden');
-        }
-        
-        // Validate preferred email (optional)
-        const email = document.getElementById('modalEmail').value;
-        if (email) {
-            const emailError = window.app.validateEmail(email);
-            if (emailError) {
-                errors.push(emailError);
-                document.getElementById('modalEmail').classList.add('border-red-500');
-                document.getElementById('modalEmail-error').textContent = emailError;
-                document.getElementById('modalEmail-error').classList.remove('hidden');
-            }
-        }
-        
-        // Validate WhatsApp
-        const whatsapp = document.getElementById('modalWhatsapp').value;
-        const whatsappError = window.app.validateWhatsApp(whatsapp);
-        if (whatsappError) {
-            errors.push(whatsappError);
-            document.getElementById('modalWhatsapp').classList.add('border-red-500');
-            document.getElementById('modalWhatsapp-error').textContent = whatsappError;
-            document.getElementById('modalWhatsapp-error').classList.remove('hidden');
-        }
-        
-        // Validate Seeking
-        const seeking = document.getElementById('modalSeeking').value;
-        if (!seeking) {
-            errors.push('Seeking is required');
-            document.getElementById('modalSeeking').classList.add('border-red-500');
-            document.getElementById('modalSeeking-error').textContent = 'Please select what you\'re seeking';
-            document.getElementById('modalSeeking-error').classList.remove('hidden');
-        }
-        
-        // Validate Job Status
-        const jobStatus = document.getElementById('modalJobStatus').value;
-        if ((seeking === 'IN' || seeking === 'FT') && !jobStatus) {
-            errors.push('Job Status is required');
-            document.getElementById('modalJobStatus').classList.add('border-red-500');
-            document.getElementById('modalJobStatus-error').textContent = 'Please select a job status';
-            document.getElementById('modalJobStatus-error').classList.remove('hidden');
-        }
-        
-        // Validate Company if job status is YES
-        const company = document.getElementById('modalCompany');
-        if (jobStatus === 'YES') {
-            const companyVal = company.value.trim();
-            const companyLower = companyVal.toLowerCase();
-            if (!companyVal || companyLower === 'n/a' || companyLower === 'na') {
-                errors.push('Company is required and cannot be N/A when job status is "I Have a Job"');
-                company.classList.add('border-red-500');
-                document.getElementById('modalCompany-error').textContent = 'Please enter a real company name (cannot be N/A)';
-                document.getElementById('modalCompany-error').classList.remove('hidden');
-            }
-        }
-        
-        // Validate internships
-        const internshipFields = document.querySelectorAll('#modalInternshipsList .internship-field');
-        internshipFields.forEach((field, index) => {
-            const yearInput = field.querySelector('.modal-internship-year');
-            const companyInput = field.querySelector('.modal-internship-company');
-            const year = yearInput.value.trim();
-            const company = companyInput.value.trim();
-            
-            // Capitalize company
-            if (company) {
-                companyInput.value = window.app.capitalizeFirstLetterOnly(company);
-            }
-            
-            // If either is filled, both must be valid
-            if (year || company) {
-                if (!year) {
-                    errors.push(`Internship ${index + 1}: Year is required`);
-                    yearInput.classList.add('border-red-500');
-                } else {
-                    const yearError = window.app.validateInternshipYear(year);
-                    if (yearError) {
-                        errors.push(`Internship ${index + 1}: ${yearError}`);
-                        yearInput.classList.add('border-red-500');
-                    }
-                }
-                
-                if (!company) {
-                    errors.push(`Internship ${index + 1}: Company is required`);
-                    companyInput.classList.add('border-red-500');
-                }
-            }
-        });
-
-        // Validate graduate schools
-        const seenSchoolNames = [];
-        let registeredCount = 0;
-        const graduateSchoolFields = document.querySelectorAll('#modalGraduateSchoolsList .graduate-school-field');
-        graduateSchoolFields.forEach((field, index) => {
-            const nameInput = field.querySelector('.modal-gs-name');
-            const statusSelect = field.querySelector('.modal-gs-status');
-            const name = nameInput.value.trim();
-            const status = statusSelect.value;
-
-            if (!name) {
-                errors.push(`Graduate School ${index + 1}: Name is required`);
-                nameInput.classList.add('border-red-500');
-            } else {
-                const lower = name.toLowerCase();
-                if (seenSchoolNames.includes(lower)) {
-                    errors.push(`Graduate School ${index + 1}: Name must be unique`);
-                    nameInput.classList.add('border-red-500');
-                }
-                seenSchoolNames.push(lower);
-            }
-
-            if (!status) {
-                errors.push(`Graduate School ${index + 1}: Status is required`);
-                statusSelect.classList.add('border-red-500');
-            }
-
-            if (status === 'Registered') registeredCount++;
-        });
-        if (registeredCount > 1) {
-            errors.push('Only one graduate school may be marked as Registered.');
-        }
-
-        return { isValid: errors.length === 0, errors };
-    };
-
-    window.app.getProfileFormData = function() {
-        const internships = {};
-        const internshipFields = document.querySelectorAll('#modalInternshipsList .internship-field');
-        
-        internshipFields.forEach(field => {
-            const year = field.querySelector('.modal-internship-year').value.trim();
-            const company = field.querySelector('.modal-internship-company').value.trim();
-            if (year && company) {
-                internships[year] = window.app.capitalizeFirstLetterOnly(company);
-            }
-        });
-        
-        const rawCsTrack = document.getElementById('modalCsTrack').value;
-        const normalizedCsTrack = rawCsTrack === 'N/A' ? 'None' : rawCsTrack;
-
-        const data = {
-            yuid: parseInt(document.getElementById('modalYuid').value),
-            first_name: window.app.capitalizeFirstLetter(document.getElementById('modalFirstName').value.trim()),
-            last_name: window.app.capitalizeFirstLetter(document.getElementById('modalLastName').value.trim()),
-            graduation_year: parseInt(document.getElementById('modalGraduationYear').value),
-            cs_track: normalizedCsTrack,
-            yu_email: document.getElementById('modalYuEmail').value,
-            whatsapp: document.getElementById('modalWhatsapp').value.replace(/\D/g, ''),
-            seeking: document.getElementById('modalSeeking').value,
-            job_status: document.getElementById('modalJobStatus').value,
-            company: document.getElementById('modalCompany').value === 'N/A' ? 'N/A' : window.app.capitalizeFirstLetterOnly(document.getElementById('modalCompany').value)
-        };
-        
-        const email = document.getElementById('modalEmail').value.trim();
-        if (email) {
-            data.email = email;
-        }
-        
-        if (Object.keys(internships).length > 0) {
-            data.internships = internships;
-        }
-
-        const graduateSchools = [];
-        const graduateSchoolFields = document.querySelectorAll('#modalGraduateSchoolsList .graduate-school-field');
-        graduateSchoolFields.forEach(field => {
-            const name = field.querySelector('.modal-gs-name').value.trim();
-            const status = field.querySelector('.modal-gs-status').value;
-            if (name) graduateSchools.push({ name, status });
-        });
-        if (graduateSchools.length > 0) {
-            data.graduate_schools = graduateSchools;
-        }
-
-        return data;
-    };
-
-    window.app.saveProfile = async function() {
-        // Validate form
-        const validation = window.app.validateProfileForm();
-        if (!validation.isValid) {
-            window.app.showModalStatusMessage(
-                'Please fix errors: ' + validation.errors.join('; '),
-                false,
-                false
-            );
-            return;
-        }
-        
-        if (!currentEditingRepo) {
-            window.app.showModalStatusMessage('Error: No repository selected', false, false);
-            return;
-        }
-        
-        try {
-            const formData = window.app.getProfileFormData();
-            if (formData.cs_track === 'N/A') {
-                formData.cs_track = 'None';
-            }
-            const token = localStorage.getItem('github_token');
-            
-            if (!token) {
-                alert('GitHub token not found. Please configure your token.');
-                return;
-            }
-            
-            // Get current profile data
-            const gridApi = window.repoStatusGridApi;
-            let currentRowData = null;
-            
-            if (!gridApi) {
-                console.error('❌ Grid API not available');
-                alert('Error: Grid not initialized. Please refresh the page.');
-                return;
-            }
-            
-            gridApi.forEachNode(node => {
-                if (node.data.repo === currentEditingRepo) {
-                    currentRowData = node.data;
-                }
-            });
-            
-            // Determine timestamp
-            const now = new Date().toISOString();
-            let lastUpdated = now;
-            
-            if (currentEditingAction === 'edit' && currentRowData && currentRowData.lastUpdated && currentRowData.lastUpdated !== 'Unknown') {
-                // Preserve existing timestamp for edits
-                lastUpdated = currentRowData.lastUpdated;
-            }
-            
-            // Prepare updated profile entry
-            const updatedEntry = {
-                repo: currentEditingRepo,
-                studentName: formData.last_name + ', ' + formData.first_name,
-                lastUpdated: lastUpdated,
-                status: 'Success',
-                isOverride: true,
-                data: {
-                    student_profile: formData
-                },
-                resumeStatus: currentRowData?.resumeStatus || 'Missing',
-                resumeLastUpdated: currentRowData?.resumeLastUpdated || 'Unknown'
-            };
-            
-            // Load existing profile_data.json from GitHub
-            const profileDataUrl = 'https://api.github.com/repos/Yeshiva-University-CS/careers/contents/profile_data.json';
-            let profileData = [];
-            let sha = null;
-            
-            try {
-                let getResponse = await fetch(profileDataUrl, {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    },
-                    cache: 'no-store'
-                });
-                
-                if (getResponse.ok) {
-                    let meta = await getResponse.json();
-                    
-                    // If we got an array (cached raw content), retry with different header
-                    if (Array.isArray(meta)) {
-                        console.error('⚠️ Got array instead of file metadata, retrying with different Accept header');
-                        getResponse = await fetch(profileDataUrl, {
-                            headers: {
-                                'Authorization': `token ${token}`,
-                                'Accept': 'application/vnd.github.object+json'
-                            },
-                            cache: 'reload'
-                        });
-                        
-                        if (getResponse.ok) {
-                            meta = await getResponse.json();
-                        } else {
-                            throw new Error(`Retry failed: ${getResponse.status}`);
-                        }
-                    }
-                    
-                    sha = meta.sha;
-                    
-                    // Decode the base64 content
-                    const decodedContent = atob(meta.content.replace(/\n/g, ''));
-                    profileData = JSON.parse(decodedContent);
-                    console.log('✅ Loaded existing profile data, sha:', sha);
-                } else if (getResponse.status === 404) {
-                    console.log('Profile file not found, will create new one');
-                    profileData = [];
-                    sha = null;
-                } else {
-                    throw new Error(`Failed to fetch profile data: ${getResponse.status}`);
-                }
-            } catch (fetchError) {
-                console.error('Error loading profile data:', fetchError);
-                throw fetchError;
-            }
-            
-            // Update or add entry
-            const existingIndex = profileData.findIndex(entry => entry.repo === currentEditingRepo);
-            if (existingIndex >= 0) {
-                profileData[existingIndex] = updatedEntry;
-            } else {
-                profileData.push(updatedEntry);
-            }
-            
-            // Save back to GitHub
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(profileData, null, 2))));
-            const putBody = {
-                message: currentEditingAction === 'edit' ? `Update profile for ${currentEditingRepo}` : `Add profile for ${currentEditingRepo}`,
-                content: content,
-                branch: 'main'
-            };
-            
-            if (sha) {
-                putBody.sha = sha;
-            }
-            
-            const putResponse = await fetch(profileDataUrl, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(putBody)
-            });
-            
-            if (!putResponse.ok) {
-                const error = await putResponse.json();
-                throw new Error(error.message || 'Failed to save profile');
-            }
-            
-            // Show success message and close after 1 second
-            const successMessage = currentEditingAction === 'edit' ? 'Profile updated successfully!' : 'Profile added successfully!';
-            window.app.showModalStatusMessage(successMessage, true, 1000);
-            
-            // Reload data to reflect the saved override
-            setTimeout(() => {
-                window.app.loadData();
-            }, 1100);
-        } catch (error) {
-            console.error('Error saving profile:', error);
-            window.app.showModalStatusMessage('Error saving profile: ' + error.message, false, false);
-        }
+    // Open Profile Tool in a new tab for the given repo
+    window.app.openProfileInProfileTool = function(repo) {
+        const url = '../profile/?repo=' + encodeURIComponent(repo);
+        window.open(url, '_blank');
     };
 
     window.app.startTime = Date.now();
