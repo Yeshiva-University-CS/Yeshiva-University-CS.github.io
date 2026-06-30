@@ -260,17 +260,11 @@
             if (data.job_status === true) data.job_status = 'YES';
             else if (data.job_status === false) data.job_status = 'NO';
             if (data.job_status === 'N/A') data.job_status = 'None';
-            const recruitingYear = String(data.graduation_year || currentYear);
+            const recruitingYear = '2026';
             if (data.seeking && data.seeking !== 'None') {
-                let company = 'None';
-                let jobStatus = data.job_status || 'NO';
-                if (data.seeking === 'FT') {
-                    const raw = data.company != null ? String(data.company).trim() : '';
-                    if (raw && raw.toLowerCase() !== 'n/a' && raw.toLowerCase() !== 'none') {
-                        company = raw;
-                        jobStatus = 'YES';
-                    }
-                }
+                const raw = data.company != null ? String(data.company).trim() : '';
+                const company = (raw && raw.toLowerCase() !== 'n/a' && raw.toLowerCase() !== 'none' && raw.toLowerCase() !== 'na') ? raw : 'None';
+                const jobStatus = company !== 'None' ? 'YES' : 'NO';
                 data.job_search = {};
                 data.job_search[recruitingYear] = {
                     seeking: data.seeking,

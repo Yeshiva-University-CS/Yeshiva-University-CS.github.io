@@ -827,30 +827,39 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     // SHARED REPO PROCESSING FUNCTION
     // ============================================================================
 
-    // Converts a V1 student_profile (seeking/company/job_status) to V2 (version:2, job_search).
+    // Converts a V1 student_profile (seeking/company/job_status/internships) to V2 (version:2, job_search).
     // Mutates data.student_profile in place. Returns true if a conversion was performed.
     function convertProfileV1ToV2(data) {
         const profile = data && data.student_profile;
-        if (!profile || profile.version === 2 || !profile.seeking) return false;
+        if (!profile || profile.version === 2 || (!profile.seeking && !profile.internships)) return false;
 
         if (profile.seeking === 'N/A') profile.seeking = 'None';
         if (profile.job_status === true) profile.job_status = 'YES';
         else if (profile.job_status === false) profile.job_status = 'NO';
         if (profile.job_status === 'N/A') profile.job_status = 'None';
 
-        const recruitingYear = String(profile.graduation_year || new Date().getFullYear());
-        if (profile.seeking && profile.seeking !== 'None') {
-            let company = 'None';
-            if (profile.seeking === 'FT') {
-                const raw = profile.company != null ? String(profile.company).trim() : '';
-                if (raw && raw.toLowerCase() !== 'n/a' && raw.toLowerCase() !== 'none') {
-                    company = raw;
-                }
+        // Convert legacy internships entries to job_search by year
+        if (profile.internships) {
+            if (!profile.job_search) profile.job_search = {};
+            for (const [year, company] of Object.entries(profile.internships)) {
+                const normalizedCompany = normalizeCompanyValue(company);
+                profile.job_search[year] = {
+                    seeking: 'IN',
+                    job_status: normalizedCompany !== 'None' ? 'YES' : 'NO',
+                    company: normalizedCompany
+                };
             }
-            const jobStatus = company !== 'None' ? 'YES' : 'NO';
-            profile.job_search = {};
-            profile.job_search[recruitingYear] = { seeking: profile.seeking, job_status: jobStatus, company };
+            delete profile.internships;
         }
+
+        // Convert legacy top-level seeking/company to recruiting year 2026
+        if (profile.seeking && profile.seeking !== 'None') {
+            if (!profile.job_search) profile.job_search = {};
+            const company = normalizeCompanyValue(profile.company);
+            const jobStatus = company !== 'None' ? 'YES' : 'NO';
+            profile.job_search['2026'] = { seeking: profile.seeking, job_status: jobStatus, company };
+        }
+
         delete profile.seeking;
         delete profile.job_status;
         delete profile.company;
@@ -1539,6 +1548,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 field: 'job_type',
                 headerName: 'Type',
                 filter: 'agSetColumnFilter',
+                cellRenderer: (params) => {
+                    if (params.value === 'None') return '--';
+                    if (!params.value && params.data) {
+                        const gradYear = params.data.graduation_year;
+                        if (gradYear == currentDashboardYear) return 'FT';
+                        if (gradYear > currentDashboardYear) return 'IN';
+                    }
+                    return params.value || '';
+                },
                 width: 100
             },
             {
@@ -1546,6 +1564,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 headerName: 'Status',
                 filter: 'agSetColumnFilter',
                 cellRenderer: (params) => {
+                    if (params.data && params.data.job_type === 'None') {
+                        return '<span class="status-badge status-na">N/A</span>';
+                    }
+                    if (params.data && !params.data.job_type) {
+                        const gradYear = params.data.graduation_year;
+                        if (gradYear == currentDashboardYear || gradYear > currentDashboardYear) {
+                            return '<span class="status-badge status-no-job">No</span>';
+                        }
+                    }
                     if (!params.value) return '';
                     let statusClass = 'status-na';
                     if (params.value === 'Yes') statusClass = 'status-have-job';
@@ -1838,21 +1865,27 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     async function updateStatistics(profiles) {
         const total = profiles.length;
 
-        const notLooking = profiles.filter(p => !p.job_type || p.job_type === 'N/A' || p.job_type === '').length;
-        const seeking = total - notLooking;
+        const effectiveType = (p) => {
+            if (p.job_type && p.job_type !== '') return p.job_type;
+            if (p.graduation_year == currentDashboardYear) return 'FT';
+            if (p.graduation_year > currentDashboardYear) return 'IN';
+            return '';
+        };
 
-        const seekingFT = profiles.filter(p => p.job_type === 'FT').length;
+        const notLooking = profiles.filter(p => effectiveType(p) === 'None').length;
+
+        const seekingFT = profiles.filter(p => effectiveType(p) === 'FT').length;
         const haveFTJob = profiles.filter(p =>
-            p.job_type === 'FT' && p.job_status === 'Yes'
+            effectiveType(p) === 'FT' && p.job_status === 'Yes'
         ).length;
 
-        const seekingIN = profiles.filter(p => p.job_type === 'IN').length;
+        const seekingIN = profiles.filter(p => effectiveType(p) === 'IN').length;
         const haveINJob = profiles.filter(p =>
-            p.job_type === 'IN' && p.job_status === 'Yes'
+            effectiveType(p) === 'IN' && p.job_status === 'Yes'
         ).length;
 
         const haveAnyJob = profiles.filter(p =>
-            (p.job_type === 'FT' || p.job_type === 'IN') && p.job_status === 'Yes'
+            (effectiveType(p) === 'FT' || effectiveType(p) === 'IN') && p.job_status === 'Yes'
         ).length;
         const plansFinalized = haveAnyJob + notLooking;
 
@@ -1872,7 +1905,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         const statInternshipsPercent = document.getElementById('statInternshipsPercent');
         const notLookingContainer = document.getElementById('notLookingContainer');
         const statNotLookingText = document.getElementById('statNotLookingText');
-        
+
         // Get tile containers for visibility control
         const ftJobsTile = document.getElementById('ftJobsTile');
         const internshipsTile = document.getElementById('internshipsTile');
@@ -2124,11 +2157,17 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     // ============================================================================
     
     function updatePieChart(profiles) {
-        const ftWithJobs = profiles.filter(p => p.job_type === 'FT' && p.job_status === 'Yes').length;
-        const inWithJobs = profiles.filter(p => p.job_type === 'IN' && p.job_status === 'Yes').length;
-        const notLooking = profiles.filter(p => !p.job_type || p.job_type === 'N/A' || p.job_type === '').length;
+        const effectiveType = (p) => {
+            if (p.job_type && p.job_type !== '') return p.job_type;
+            if (p.graduation_year == currentDashboardYear) return 'FT';
+            if (p.graduation_year > currentDashboardYear) return 'IN';
+            return '';
+        };
+        const ftWithJobs = profiles.filter(p => effectiveType(p) === 'FT' && p.job_status === 'Yes').length;
+        const inWithJobs = profiles.filter(p => effectiveType(p) === 'IN' && p.job_status === 'Yes').length;
+        const notLooking = profiles.filter(p => effectiveType(p) === 'None').length;
         const lookingNoJob = profiles.filter(p =>
-            (p.job_type === 'FT' || p.job_type === 'IN') &&
+            (effectiveType(p) === 'FT' || effectiveType(p) === 'IN') &&
             (p.job_status === 'No' || p.job_status === '')
         ).length;
 

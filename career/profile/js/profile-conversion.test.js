@@ -11,17 +11,11 @@ function convertLegacyToV2(data) {
         if (data.job_status === true) data.job_status = 'YES';
         else if (data.job_status === false) data.job_status = 'NO';
         if (data.job_status === 'N/A') data.job_status = 'None';
-        const recruitingYear = String(data.graduation_year || currentYear);
+        const recruitingYear = '2026';
         if (data.seeking && data.seeking !== 'None') {
-            let company = 'None';
-            let jobStatus = data.job_status || 'NO';
-            if (data.seeking === 'FT') {
-                const raw = data.company != null ? String(data.company).trim() : '';
-                if (raw && raw.toLowerCase() !== 'n/a' && raw.toLowerCase() !== 'none') {
-                    company = raw;
-                    jobStatus = 'YES';
-                }
-            }
+            const raw = data.company != null ? String(data.company).trim() : '';
+            const company = (raw && raw.toLowerCase() !== 'n/a' && raw.toLowerCase() !== 'none' && raw.toLowerCase() !== 'na') ? raw : 'None';
+            const jobStatus = company !== 'None' ? 'YES' : 'NO';
             data.job_search = {};
             data.job_search[recruitingYear] = {
                 seeking: data.seeking,
@@ -134,13 +128,51 @@ console.log('Case 3: Internship seeking');
     assertEqual(data.job_search['2026'].company, 'None', 'no company for internship (V1 has none)');
 }
 
-console.log('Recruiting year from graduation_year');
+console.log('Case 3b: IN seeking with real company');
 {
+    const data = { graduation_year: 2026, seeking: 'IN', job_status: 'YES', company: 'MSK' };
+    convertLegacyToV2(data);
+    assertEqual(data.job_search['2026'].seeking, 'IN', 'seeking preserved');
+    assertEqual(data.job_search['2026'].company, 'MSK', 'real company preserved for IN');
+    assertEqual(data.job_search['2026'].job_status, 'YES', 'job_status YES from real company');
+}
+
+console.log('V1 with internships (convertLegacyToV2 + convertV2Unified combined)');
+{
+    const data = {
+        seeking: 'IN', job_status: 'YES', company: 'MSK',
+        internships: { '2024': 'Reflective Distance Analytics', '2025': 'Sense Education' }
+    };
+    convertLegacyToV2(data);
+    convertV2Unified(data);
+    assertEqual(data.job_search['2026'] !== undefined, true, '2026 entry from top-level seeking');
+    assertEqual(data.job_search['2026'].company, 'MSK', '2026: company from V1 top-level');
+    assertEqual(data.job_search['2026'].job_status, 'YES', '2026: job_status YES from real company');
+    assertEqual(data.job_search['2024'] !== undefined, true, '2024 entry from internships');
+    assertEqual(data.job_search['2024'].seeking, 'IN', '2024: seeking IN');
+    assertEqual(data.job_search['2024'].company, 'Reflective Distance Analytics', '2024: company preserved');
+    assertEqual(data.job_search['2025'] !== undefined, true, '2025 entry from internships');
+    assertEqual(data.job_search['2025'].company, 'Sense Education', '2025: company preserved');
+    assertEqual(data.internships, undefined, 'internships removed');
+}
+
+console.log('Migration year is always 2026, not graduation_year');
+{
+    // 2027 graduate: V1 FT data goes under 2026, not 2027
     const data = { graduation_year: 2027, seeking: 'FT', company: 'Google' };
     convertLegacyToV2(data);
-    assertEqual(data.job_search['2027'] !== undefined, true, 'keyed by grad year 2027');
-    assertEqual(data.job_search['2027'].company, 'Google', 'company under correct year');
-    assertEqual(data.job_search['2026'], undefined, 'no entry under 2026');
+    assertEqual(data.job_search['2027'], undefined, 'no 2027 entry for 2027 graduate');
+    assertEqual(data.job_search['2026'] !== undefined, true, 'V1 data keyed under 2026');
+    assertEqual(data.job_search['2026'].company, 'Google', 'company under 2026');
+}
+{
+    // 2028 graduate: V1 IN data goes under 2026, not 2028
+    const data = { graduation_year: 2028, seeking: 'IN', job_status: 'NO', company: 'N/A' };
+    convertLegacyToV2(data);
+    assertEqual(data.job_search['2028'], undefined, 'no 2028 entry for 2028 graduate');
+    assertEqual(data.job_search['2026'] !== undefined, true, 'V1 IN data keyed under 2026');
+    assertEqual(data.job_search['2026'].seeking, 'IN', 'seeking preserved under 2026');
+    assertEqual(data.job_search['2026'].company, 'None', 'N/A company normalizes to None');
 }
 
 console.log('N/A seeking → no job_search');
@@ -421,26 +453,35 @@ console.log('\nTracker: V2 seeking normalization');
 
 function convertProfileV1ToV2(data) {
     const profile = data && data.student_profile;
-    if (!profile || profile.version === 2 || !profile.seeking) return false;
+    if (!profile || profile.version === 2 || (!profile.seeking && !profile.internships)) return false;
 
     if (profile.seeking === 'N/A') profile.seeking = 'None';
     if (profile.job_status === true) profile.job_status = 'YES';
     else if (profile.job_status === false) profile.job_status = 'NO';
     if (profile.job_status === 'N/A') profile.job_status = 'None';
 
-    const recruitingYear = String(profile.graduation_year || new Date().getFullYear());
-    if (profile.seeking && profile.seeking !== 'None') {
-        let company = 'None';
-        if (profile.seeking === 'FT') {
-            const raw = profile.company != null ? String(profile.company).trim() : '';
-            if (raw && raw.toLowerCase() !== 'n/a' && raw.toLowerCase() !== 'none') {
-                company = raw;
-            }
+    // Convert legacy internships entries to job_search by year
+    if (profile.internships) {
+        if (!profile.job_search) profile.job_search = {};
+        for (const [year, company] of Object.entries(profile.internships)) {
+            const normalizedCompany = normalizeCompanyValue(company);
+            profile.job_search[year] = {
+                seeking: 'IN',
+                job_status: normalizedCompany !== 'None' ? 'YES' : 'NO',
+                company: normalizedCompany
+            };
         }
-        const jobStatus = company !== 'None' ? 'YES' : 'NO';
-        profile.job_search = {};
-        profile.job_search[recruitingYear] = { seeking: profile.seeking, job_status: jobStatus, company };
+        delete profile.internships;
     }
+
+    // Convert legacy top-level seeking/company to recruiting year 2026
+    if (profile.seeking && profile.seeking !== 'None') {
+        if (!profile.job_search) profile.job_search = {};
+        const company = normalizeCompanyValue(profile.company);
+        const jobStatus = company !== 'None' ? 'YES' : 'NO';
+        profile.job_search['2026'] = { seeking: profile.seeking, job_status: jobStatus, company };
+    }
+
     delete profile.seeking;
     delete profile.job_status;
     delete profile.company;
@@ -493,6 +534,56 @@ console.log('\nTracker: convertProfileV1ToV2');
     const r6 = convertProfileV1ToV2(d6);
     assertEqual(r6, false, 'No seeking: returns false');
     assertEqual(d6.student_profile.version, undefined, 'No seeking: no version added');
+
+    // 2027 graduate V1 → job_search keyed under 2026, not 2027
+    const d7 = { student_profile: { graduation_year: 2027, seeking: 'FT', company: 'Citi', job_status: 'YES' } };
+    convertProfileV1ToV2(d7);
+    assertEqual(d7.student_profile.job_search['2027'], undefined, '2027 grad: no 2027 entry created');
+    assertEqual(d7.student_profile.job_search['2026'] !== undefined, true, '2027 grad: entry created under 2026');
+    assertEqual(d7.student_profile.job_search['2026'].company, 'Citi', '2027 grad: company under 2026');
+    assertEqual(d7.student_profile.version, 2, '2027 grad: version set to 2');
+
+    // 2028 graduate V1 → job_search keyed under 2026, not 2028
+    const d8 = { student_profile: { graduation_year: 2028, seeking: 'IN', job_status: 'NO', company: 'N/A' } };
+    convertProfileV1ToV2(d8);
+    assertEqual(d8.student_profile.job_search['2028'], undefined, '2028 grad: no 2028 entry created');
+    assertEqual(d8.student_profile.job_search['2026'] !== undefined, true, '2028 grad: entry created under 2026');
+    assertEqual(d8.student_profile.job_search['2026'].seeking, 'IN', '2028 grad: seeking preserved');
+    assertEqual(d8.student_profile.job_search['2026'].company, 'None', '2028 grad: N/A company → None');
+    assertEqual(d8.student_profile.version, 2, '2028 grad: version set to 2');
+
+    // V1 IN profile with real company (no internships)
+    const d_in = { student_profile: { graduation_year: 2026, seeking: 'IN', job_status: 'YES', company: 'MSK' } };
+    convertProfileV1ToV2(d_in);
+    assertEqual(d_in.student_profile.job_search['2026'].seeking, 'IN', 'V1 IN real company: seeking');
+    assertEqual(d_in.student_profile.job_search['2026'].company, 'MSK', 'V1 IN real company: company preserved');
+    assertEqual(d_in.student_profile.job_search['2026'].job_status, 'YES', 'V1 IN real company: job_status YES');
+
+    // V1 profile with internships + top-level IN seeking
+    const d9 = {
+        student_profile: {
+            graduation_year: 2028,
+            seeking: 'IN',
+            job_status: 'YES',
+            company: 'MSK',
+            internships: { '2024': 'Reflective Distance Analytics', '2025': 'Sense Education' }
+        }
+    };
+    convertProfileV1ToV2(d9);
+    assertEqual(d9.student_profile.job_search['2024'] !== undefined, true, 'internship 2024 created');
+    assertEqual(d9.student_profile.job_search['2024'].seeking, 'IN', '2024: seeking IN');
+    assertEqual(d9.student_profile.job_search['2024'].company, 'Reflective Distance Analytics', '2024: company');
+    assertEqual(d9.student_profile.job_search['2024'].job_status, 'YES', '2024: job_status YES from real company');
+    assertEqual(d9.student_profile.job_search['2025'] !== undefined, true, 'internship 2025 created');
+    assertEqual(d9.student_profile.job_search['2025'].company, 'Sense Education', '2025: company');
+    assertEqual(d9.student_profile.job_search['2025'].job_status, 'YES', '2025: job_status YES from real company');
+    assertEqual(d9.student_profile.job_search['2026'] !== undefined, true, '2026 from top-level seeking');
+    assertEqual(d9.student_profile.job_search['2026'].seeking, 'IN', '2026: seeking');
+    assertEqual(d9.student_profile.job_search['2026'].company, 'MSK', '2026: company preserved for IN');
+    assertEqual(d9.student_profile.job_search['2026'].job_status, 'YES', '2026: job_status YES from real company');
+    assertEqual(d9.student_profile.job_search['2028'], undefined, 'no 2028 entry from graduation_year');
+    assertEqual(d9.student_profile.internships, undefined, 'internships removed after conversion');
+    assertEqual(d9.student_profile.version, 2, 'version set to 2');
 }
 
 // =====================================================================
@@ -525,6 +616,122 @@ console.log('\nTracker: shouldOverrideWithConversion (V1 dirty-state)');
     // V1 converted, no existing entry (new repo) → override (new entry path)
     const e4 = { wasV1Converted: true, data: { student_profile: { version: 2 } } };
     assertEqual(shouldOverrideWithConversion(e4, null), true, 'V1→V2, no existing → override');
+}
+
+// =====================================================================
+// Tracker: dashboard row display logic (Type and Status columns)
+// Mirrors cellRenderer logic in initGrid() in tracker/js/app-htmx.js
+// =====================================================================
+
+function renderTypeCell(job_type, graduation_year, dashboardYear) {
+    if (job_type === 'None') return '--';
+    if (!job_type && graduation_year != null && dashboardYear != null) {
+        if (graduation_year == dashboardYear) return 'FT';
+        if (graduation_year > dashboardYear) return 'IN';
+    }
+    return job_type || '';
+}
+
+function renderStatusCell(job_type, job_status, graduation_year, dashboardYear) {
+    if (job_type === 'None') return 'N/A';
+    if (!job_type && graduation_year != null && dashboardYear != null) {
+        if (graduation_year == dashboardYear || graduation_year > dashboardYear) {
+            return 'No';
+        }
+    }
+    if (!job_status) return '';
+    return job_status; // 'Yes' or 'No'
+}
+
+console.log('\nTracker: dashboard Type cell rendering');
+{
+    // Case 1: Not Looking (has job_search record with seeking=None)
+    assertEqual(renderTypeCell('None', 2026, 2026), '--', 'seeking=None → Type is --');
+    // Case 2: Missing recruiting-year record — inferred from graduation_year
+    assertEqual(renderTypeCell('', 2026, 2026), 'FT', 'missing record, grad=dashboard year → FT');
+    assertEqual(renderTypeCell('', 2027, 2026), 'IN', 'missing record, grad > dashboard year → IN');
+    assertEqual(renderTypeCell('', 2028, 2026), 'IN', 'missing record, grad > dashboard year (2028) → IN');
+    assertEqual(renderTypeCell('', 2027, 2027), 'FT', 'missing record, grad=dashboard year (2027) → FT');
+    assertEqual(renderTypeCell('', 2028, 2027), 'IN', 'missing record, grad > dashboard year (2028 vs 2027) → IN');
+    // Normal cases unchanged
+    assertEqual(renderTypeCell('FT', 2026, 2026), 'FT', 'FT record → FT');
+    assertEqual(renderTypeCell('IN', 2026, 2026), 'IN', 'IN record → IN');
+}
+
+console.log('\nTracker: dashboard Status cell rendering');
+{
+    // Case 1: Not Looking — always N/A regardless of job_status value
+    assertEqual(renderStatusCell('None', 'No', null, null), 'N/A', 'seeking=None, job_status=No → N/A');
+    assertEqual(renderStatusCell('None', '', null, null), 'N/A', 'seeking=None, no job_status → N/A');
+    // Case 2: Inferred record — show No badge (not yet placed)
+    assertEqual(renderStatusCell('', '', 2026, 2026), 'No', 'inferred FT (grad=dashboard year 2026) → No');
+    assertEqual(renderStatusCell('', '', 2027, 2026), 'No', 'inferred IN (grad 2027 > dashboard 2026) → No');
+    assertEqual(renderStatusCell('', '', 2027, 2027), 'No', 'inferred FT (grad=dashboard year 2027) → No');
+    assertEqual(renderStatusCell('', '', 2028, 2027), 'No', 'inferred IN (grad 2028 > dashboard 2027) → No');
+    // Normal active cases unchanged
+    assertEqual(renderStatusCell('FT', 'Yes', 2026, 2026), 'Yes', 'FT + Yes → Yes');
+    assertEqual(renderStatusCell('FT', 'No', 2026, 2026), 'No', 'FT + No → No');
+    assertEqual(renderStatusCell('IN', 'Yes', 2025, 2026), 'Yes', 'IN + Yes → Yes');
+    assertEqual(renderStatusCell('IN', 'No', 2025, 2026), 'No', 'IN + No → No');
+}
+
+// =====================================================================
+// Tracker: updateStatistics row categorization
+// Mirrors updateStatistics() in tracker/js/app-htmx.js
+// =====================================================================
+
+function categorizeProfiles(profiles, dashboardYear) {
+    const effectiveType = (p) => {
+        if (p.job_type && p.job_type !== '') return p.job_type;
+        if (dashboardYear == null) return '';
+        if (p.graduation_year == dashboardYear) return 'FT';
+        if (p.graduation_year > dashboardYear) return 'IN';
+        return '';
+    };
+    const notLooking = profiles.filter(p => effectiveType(p) === 'None').length;
+    const haveFTJob = profiles.filter(p => effectiveType(p) === 'FT' && p.job_status === 'Yes').length;
+    const haveINJob = profiles.filter(p => effectiveType(p) === 'IN' && p.job_status === 'Yes').length;
+    const haveAnyJob = haveFTJob + haveINJob;
+    const plansFinalized = haveAnyJob + notLooking;
+    return { notLooking, plansFinalized };
+}
+
+console.log('\nTracker: updateStatistics categorization');
+{
+    const profiles = [
+        { job_type: 'FT', job_status: 'Yes' },                    // has FT job
+        { job_type: 'FT', job_status: 'No' },                     // FT, looking
+        { job_type: 'IN', job_status: 'Yes' },                    // has internship
+        { job_type: 'None', job_status: 'No' },                   // Not Looking
+        { job_type: '', job_status: '', graduation_year: 2026 },   // inferred FT (2026 dashboard)
+        { job_type: '', job_status: '', graduation_year: 2027 },   // inferred IN (2026 dashboard)
+    ];
+    const result = categorizeProfiles(profiles, 2026);
+    assertEqual(result.notLooking, 1, 'notLooking counts only seeking=None rows');
+    assertEqual(result.plansFinalized, 3, 'plansFinalized = jobs(2) + notLooking(1); inferred records without jobs not finalized');
+}
+
+{
+    // All students have records: some not looking, none inferred
+    const profiles = [
+        { job_type: 'None', job_status: 'No' },
+        { job_type: 'None', job_status: 'No' },
+        { job_type: 'FT', job_status: 'Yes' },
+    ];
+    const result = categorizeProfiles(profiles, 2026);
+    assertEqual(result.notLooking, 2, 'two not looking');
+    assertEqual(result.plansFinalized, 3, 'plansFinalized = 1 job + 2 not looking');
+}
+
+{
+    // Inferred FT students (2027 dashboard, 2027 graduates)
+    const profiles = [
+        { job_type: '', job_status: '', graduation_year: 2027 },
+        { job_type: '', job_status: '', graduation_year: 2027 },
+    ];
+    const result = categorizeProfiles(profiles, 2027);
+    assertEqual(result.notLooking, 0, 'no not-looking');
+    assertEqual(result.plansFinalized, 0, 'inferred FT with no job do not count as finalized');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
