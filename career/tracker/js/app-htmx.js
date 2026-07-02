@@ -19,6 +19,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     let pieChart = null;
     let currentDashboardYear = new Date().getFullYear(); // Default to current year dashboard
     let selectedGradYear = currentDashboardYear;
+    let currentDashboardSubView = 'jobSearch'; // 'jobSearch' | 'gradSchool'
+    let gradSchoolGridApi = null;
+    let gradSchoolChart = null;
     
     // ============================================================================
     // COMPANY NORMALIZATION
@@ -83,7 +86,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
         setTimeout(() => {
             // Use HTMX to load dashboard content into tab-container
-            htmx.ajax('GET', 'fragments/dashboard-content.html?v=2025-02-09-header-summary', {
+            htmx.ajax('GET', 'fragments/dashboard-content.html?v=2026-07-01-acceptance-rate-fix', {
                 target: '#tab-container',
                 swap: 'innerHTML'
             }).then(() => {
@@ -167,9 +170,23 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 selectedGradYear = year;
                 console.log('Set currentDashboardYear to:', currentDashboardYear);
                 updateDashboardTitle();
+
+                // The dashboard fragment was just reloaded fresh by renderYearTabs(),
+                // so any grad-school grid/chart references point at detached DOM nodes;
+                // re-apply whichever sub-view (Job Search or Graduate Schools) was already
+                // active instead of forcing Job Search, so filter state/sub-view survives
+                // switching between recruiting-year dashboards and other tabs.
+                gradSchoolGridApi = null;
+                gradSchoolChart = null;
+                switchDashboardSubView(currentDashboardSubView);
             }
-            
-            // Wait a moment for HTMX to swap the content, then initialize grid
+
+            // Wait a moment for HTMX to swap the content, then initialize grid.
+            // Only relevant when the Job Search sub-view is active — Graduate Schools
+            // already gets reloaded above via switchDashboardSubView().
+            if (currentDashboardSubView !== 'jobSearch') {
+                return;
+            }
             setTimeout(async () => {
                 const gridDiv = document.getElementById('profileGrid');
                 console.log('After timeout - Dashboard grid div exists:', !!gridDiv);
@@ -310,7 +327,17 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             modal.classList.add('hidden');
         }
     }
-    
+
+    function openGradTopSchoolsModal() {
+        const modal = document.getElementById('gradTopSchoolsModal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeGradTopSchoolsModal() {
+        const modal = document.getElementById('gradTopSchoolsModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
     function updateRefreshModalProgress(message) {
         const el = document.getElementById('refreshModalProgress');
         if (el) el.textContent = message;
@@ -1323,7 +1350,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         console.log('Initializing grid...');
         const gridDiv = document.getElementById('profileGrid');
         const needsInit = !gridApi || (gridDiv && gridDiv.innerHTML.trim() === '');
-        
+
         if (needsInit) {
             if (gridApi) {
                 console.log('Destroying old grid instance before reinitializing');
@@ -1342,7 +1369,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         const statsRow = document.getElementById('statsRow');
         const filtersRow = document.getElementById('filtersRow');
         const gridContainer = document.getElementById('gridContainer');
-        
+
         if (statsRow) statsRow.style.display = 'grid';
         if (filtersRow) filtersRow.style.display = 'flex';
         if (gridContainer) gridContainer.style.display = 'flex';
@@ -1352,7 +1379,387 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
         console.log('Grid display complete');
     }
-    
+
+    // ============================================================================
+    // GRADUATE SCHOOL DASHBOARD
+    // ============================================================================
+
+    function switchDashboardSubView(view) {
+        currentDashboardSubView = view;
+
+        const jobSearchView = document.getElementById('jobSearchView');
+        const gradSchoolView = document.getElementById('gradSchoolView');
+        const jobSearchBtn = document.getElementById('jobSearchViewBtn');
+        const gradSchoolBtn = document.getElementById('gradSchoolViewBtn');
+
+        const filterJobTypeGroup = document.getElementById('filterJobTypeGroup');
+        const filterTrackGroup = document.getElementById('filterTrackGroup');
+        const filterGradYearSelect = document.getElementById('filterGradYear');
+        const filterGradYearLocked = document.getElementById('filterGradYearLocked');
+        const filterAcceptanceGroup = document.getElementById('filterAcceptanceGroup');
+
+        const activeClasses = ['bg-blue-600', 'text-white'];
+        const inactiveClasses = ['text-gray-600', 'hover:text-gray-900'];
+
+        if (view === 'gradSchool') {
+            if (jobSearchView) jobSearchView.classList.add('hidden');
+            if (gradSchoolView) gradSchoolView.classList.remove('hidden');
+            if (jobSearchBtn) { jobSearchBtn.classList.remove(...activeClasses); jobSearchBtn.classList.add(...inactiveClasses); }
+            if (gradSchoolBtn) { gradSchoolBtn.classList.remove(...inactiveClasses); gradSchoolBtn.classList.add(...activeClasses); }
+
+            if (filterJobTypeGroup) filterJobTypeGroup.classList.add('hidden');
+            if (filterTrackGroup) filterTrackGroup.classList.add('hidden');
+            if (filterGradYearSelect) filterGradYearSelect.classList.add('hidden');
+            if (filterGradYearLocked) {
+                filterGradYearLocked.textContent = currentDashboardYear;
+                filterGradYearLocked.classList.remove('hidden');
+            }
+            if (filterAcceptanceGroup) filterAcceptanceGroup.classList.remove('hidden');
+
+            // Wait a moment for the browser to lay out the now-visible container
+            // before ag-grid/Chart.js measure it (mirrors the Job Search tab's own
+            // setTimeout in switchTab(), avoiding stale-size grid/chart creation).
+            setTimeout(() => {
+                loadGradSchoolData();
+            }, 100);
+        } else {
+            if (gradSchoolView) gradSchoolView.classList.add('hidden');
+            if (jobSearchView) jobSearchView.classList.remove('hidden');
+            if (gradSchoolBtn) { gradSchoolBtn.classList.remove(...activeClasses); gradSchoolBtn.classList.add(...inactiveClasses); }
+            if (jobSearchBtn) { jobSearchBtn.classList.remove(...inactiveClasses); jobSearchBtn.classList.add(...activeClasses); }
+
+            if (filterJobTypeGroup) filterJobTypeGroup.classList.remove('hidden');
+            if (filterTrackGroup) filterTrackGroup.classList.remove('hidden');
+            if (filterGradYearSelect) filterGradYearSelect.classList.remove('hidden');
+            if (filterGradYearLocked) filterGradYearLocked.classList.add('hidden');
+            if (filterAcceptanceGroup) filterAcceptanceGroup.classList.add('hidden');
+        }
+    }
+
+    function computeFtJobStatus(seeking, jobStatus) {
+        if (seeking === 'None') return 'N/A';
+        if (seeking === 'IN') return 'No';
+        if (seeking === 'FT') return jobStatus === 'Yes' ? 'Yes' : 'No';
+        return 'No'; // no job_search record; row is already this year's graduating class, treat as FT-track with no offer yet
+    }
+
+    async function loadGradSchoolData() {
+        if (!conn) {
+            console.warn('Database connection not available for graduate school data');
+            return;
+        }
+
+        const result = await conn.query(`
+            SELECT p.student_name, p.yuid, p.graduation_year, gs.name, gs.status,
+                COALESCE(js.seeking, '') as job_type,
+                CASE
+                    WHEN js.job_status = 'YES' THEN 'Yes'
+                    WHEN js.job_status = 'NO' THEN 'No'
+                    ELSE COALESCE(js.job_status, '')
+                END as job_status
+            FROM profiles p
+            LEFT JOIN graduate_schools gs ON p.yuid = gs.yuid
+            LEFT JOIN job_search js ON p.yuid = js.yuid AND js.recruiting_year = ${currentDashboardYear}
+            WHERE p.graduation_year = ${currentDashboardYear}
+            AND p.cs_track IN ('AI', 'DIS', 'BA')
+            ORDER BY p.student_name
+        `);
+        const rows = result.toArray();
+
+        // Group rows (one per school, or one with null name/status if no schools) by student
+        const byStudent = new Map();
+        for (const row of rows) {
+            if (!byStudent.has(row.yuid)) {
+                byStudent.set(row.yuid, {
+                    student_name: row.student_name,
+                    graduation_year: row.graduation_year,
+                    ftJobStatus: computeFtJobStatus(row.job_type, row.job_status),
+                    schools: []
+                });
+            }
+            if (row.name) {
+                byStudent.get(row.yuid).schools.push({ name: row.name, status: row.status });
+            }
+        }
+
+        const statusPrecedence = { Accepted: 3, Pending: 2, Rejected: 1 };
+        const students = Array.from(byStudent.values()).map(s => {
+            let bestStatus = '';
+            for (const school of s.schools) {
+                if (!bestStatus || (statusPrecedence[school.status] || 0) > (statusPrecedence[bestStatus] || 0)) {
+                    bestStatus = school.status;
+                }
+            }
+            return { ...s, bestStatus: s.schools.length > 0 ? bestStatus : 'Did Not Apply' };
+        });
+
+        // Stage 1: Job Status (FT Job Yes/No) filters the stats/chart and the grid
+        const jobStatusChecked = Array.from(document.querySelectorAll('[id^="filterJobStatus_"]:checked')).map(cb => cb.value);
+        let jobStatusFiltered = students;
+        if (jobStatusChecked.length > 0 && jobStatusChecked.length < 2) {
+            jobStatusFiltered = students.filter(s => jobStatusChecked.includes(s.ftJobStatus));
+        }
+
+        // Stage 2: Acceptance Status also filters the stats/chart (not just the grid).
+        // Show-did-not-apply only controls whether the grid displays the Did-Not-Apply rows.
+        const acceptanceChecked = Array.from(document.querySelectorAll('[id^="filterAcceptance_"]:checked')).map(cb => cb.value);
+        const showDidNotApply = document.getElementById('filterShowDidNotApply')?.checked || false;
+
+        const applicantRows = jobStatusFiltered.filter(s => s.bestStatus !== 'Did Not Apply');
+        const didNotApplyRows = jobStatusFiltered.filter(s => s.bestStatus === 'Did Not Apply');
+
+        let visibleApplicants = applicantRows;
+        if (acceptanceChecked.length > 0 && acceptanceChecked.length < 3) {
+            visibleApplicants = applicantRows.filter(s => acceptanceChecked.includes(s.bestStatus));
+        }
+
+        // Stat cards and pie chart reflect the same Job-Status + Acceptance-Status filtered
+        // cohort as the grid; Did Not Apply is always included so that stat keeps its true count
+        const filteredCohort = visibleApplicants.concat(didNotApplyRows);
+        updateGradSchoolStats(filteredCohort);
+        updateGradSchoolChart(filteredCohort);
+
+        const gridRows = showDidNotApply ? filteredCohort : visibleApplicants;
+
+        // Unhide the grid's container before creating it - ag-Grid measures the container's
+        // width when it initializes, and a still-hidden (display:none) ancestor measures 0.
+        const gradStatsRow = document.getElementById('gradStatsRow');
+        const gradGridContainer = document.getElementById('gradGridContainer');
+        if (gradStatsRow) gradStatsRow.style.display = 'grid';
+        if (gradGridContainer) gradGridContainer.style.display = 'flex';
+
+        const gridDiv = document.getElementById('gradSchoolGrid');
+        const needsInit = !gradSchoolGridApi || (gridDiv && gridDiv.innerHTML.trim() === '');
+        if (needsInit) {
+            if (gradSchoolGridApi) {
+                try { gradSchoolGridApi.destroy(); } catch (e) { console.warn('Grad school grid destroy failed:', e); }
+                gradSchoolGridApi = null;
+            }
+            initGradSchoolGrid(gridRows);
+        } else {
+            gradSchoolGridApi.setGridOption('rowData', gridRows);
+        }
+
+        await updateGradTopSchools();
+    }
+
+    async function updateGradTopSchools() {
+        const result = await conn.query(`
+            SELECT name,
+                COUNT(*)::INTEGER AS total_applications,
+                SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END)::INTEGER AS accepted_count
+            FROM graduate_schools
+            GROUP BY name
+            ORDER BY accepted_count DESC, total_applications DESC
+            LIMIT 10
+        `);
+        const rows = result.toArray();
+
+        const body = document.getElementById('gradTopSchoolsBody');
+        if (!body) return;
+
+        if (rows.length === 0) {
+            body.innerHTML = '<tr class="border-t border-gray-100"><td class="py-2 text-gray-500" colspan="4">No data yet</td></tr>';
+            return;
+        }
+
+        body.innerHTML = rows.map(r => {
+            const rate = r.total_applications > 0 ? Math.round((Number(r.accepted_count) / Number(r.total_applications)) * 100) : 0;
+            return `
+                <tr class="border-t border-gray-100">
+                    <td class="py-1 pr-4">${r.name}</td>
+                    <td class="py-1 pr-4">${r.total_applications}</td>
+                    <td class="py-1 pr-4">${r.accepted_count}</td>
+                    <td class="py-1">${rate}%</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function updateGradSchoolStats(students) {
+        const total = students.length;
+        const applicants = students.filter(s => s.schools.length > 0).length;
+        const accepted = students.filter(s => s.bestStatus === 'Accepted').length;
+        const rejected = students.filter(s => s.bestStatus === 'Rejected').length;
+        const pending = students.filter(s => s.bestStatus === 'Pending').length;
+        const didNotApply = students.filter(s => s.bestStatus === 'Did Not Apply').length;
+
+        const pct = (n) => total > 0 ? Math.round((n / total) * 100) : 0;
+        const pctOfApplicants = (n) => applicants > 0 ? Math.round((n / applicants) * 100) : 0;
+
+        const set = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+        const setPercent = (id, n, pctFn = pct) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = `${pctFn(n)}%`;
+                updateBadgeColor(el, pctFn(n));
+            }
+        };
+
+        set('gradStatApplicants', applicants);
+        setPercent('gradStatApplicantsPercent', applicants);
+        set('gradStatAccepted', accepted);
+        setPercent('gradStatAcceptedPercent', accepted, pctOfApplicants);
+        set('gradStatPending', pending);
+        set('gradStatRejected', rejected);
+        set('gradStatDidNotApply', didNotApply);
+    }
+
+    function initGradSchoolGrid(rowData) {
+        const columnDefs = [
+            {
+                field: 'student_name',
+                headerName: 'Student',
+                filter: 'agTextColumnFilter',
+                sort: 'asc',
+                minWidth: 150
+            },
+            {
+                field: 'ftJobStatus',
+                headerName: 'FT Job',
+                filter: 'agSetColumnFilter',
+                cellRenderer: (params) => {
+                    if (!params.value) return '';
+                    let statusClass = 'status-na';
+                    if (params.value === 'Yes') statusClass = 'status-have-job';
+                    else if (params.value === 'No') statusClass = 'status-no-job';
+                    return `<span class="status-badge ${statusClass}">${params.value}</span>`;
+                },
+                width: 100
+            },
+            {
+                field: 'bestStatus',
+                headerName: 'Best Status',
+                filter: 'agSetColumnFilter',
+                comparator: (valueA, valueB) => {
+                    const order = { Accepted: 1, Pending: 2, Rejected: 3, 'Did Not Apply': 4 };
+                    return (order[valueA] || 999) - (order[valueB] || 999);
+                },
+                cellRenderer: (params) => {
+                    if (!params.value) return '';
+                    let statusClass = 'status-na';
+                    if (params.value === 'Accepted') statusClass = 'status-have-job';
+                    else if (params.value === 'Rejected') statusClass = 'status-no-job';
+                    else if (params.value === 'Pending') statusClass = 'status-awaiting';
+                    return `<span class="status-badge status-badge-grad ${statusClass}">${params.value}</span>`;
+                },
+                width: 150
+            },
+            {
+                headerName: 'Schools Applied',
+                filter: 'agTextColumnFilter',
+                minWidth: 425,
+                valueGetter: (params) => (params.data.schools || [])
+                    .slice().sort((a, b) => a.name.localeCompare(b.name))
+                    .map(s => s.name).join(', '),
+                cellRenderer: (params) => {
+                    const schools = (params.data.schools || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+                    const colorFor = (status) => status === 'Accepted' ? '#16a34a' : status === 'Rejected' ? '#dc2626' : status === 'Pending' ? '#d97706' : '#374151';
+                    return schools.map(s => `<span style="color: ${colorFor(s.status)};">${s.name}</span>`).join(', ');
+                }
+            }
+        ];
+
+        const gridOptions = {
+            columnDefs: columnDefs,
+            rowData: rowData,
+            defaultColDef: {
+                sortable: true,
+                resizable: true,
+                filter: true
+            },
+            pagination: true,
+            paginationPageSize: 50,
+            paginationPageSizeSelector: [25, 50, 100],
+            enableCellTextSelection: true,
+            ensureDomOrder: true,
+            animateRows: true,
+            // Columns must fit the container's actual width (not just their own content) -
+            // the free-text "Schools Applied" column can measure wider than the container
+            // on the tab's first render, before layout has fully settled, causing overflow.
+            onGridReady: (params) => {
+                params.api.sizeColumnsToFit();
+            },
+            onGridSizeChanged: (params) => {
+                params.api.sizeColumnsToFit();
+            }
+        };
+
+        const gridDiv = document.getElementById('gradSchoolGrid');
+        if (gridDiv) {
+            gradSchoolGridApi = agGrid.createGrid(gridDiv, gridOptions);
+        }
+    }
+
+    function updateGradSchoolChart(students) {
+        const accepted = students.filter(s => s.bestStatus === 'Accepted').length;
+        const pending = students.filter(s => s.bestStatus === 'Pending').length;
+        const rejected = students.filter(s => s.bestStatus === 'Rejected').length;
+        const showDidNotApply = document.getElementById('filterShowDidNotApply')?.checked || false;
+
+        const labels = ['Accepted', 'Pending', 'Rejected'];
+        const data = [accepted, pending, rejected];
+        const backgroundColor = ['#52AB5F', '#fbbf24', '#f56565'];
+
+        if (showDidNotApply) {
+            const didNotApply = students.filter(s => s.bestStatus === 'Did Not Apply').length;
+            labels.push('Did Not Apply');
+            data.push(didNotApply);
+            backgroundColor.push('#a0aec0');
+        }
+
+        const canvas = document.getElementById('gradSchoolChart');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+
+        if (gradSchoolChart) {
+            gradSchoolChart.destroy();
+        }
+
+        gradSchoolChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColor,
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     async function reloadSelectedRepos() {
         if (!repoStatusGridApi) {
             showError('Please load data first');
@@ -2086,13 +2493,18 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     function handleFilterChange(checkbox, groupPrefix) {
         // Count how many checkboxes are checked in this group
         const checkedInGroup = document.querySelectorAll(`[id^="${groupPrefix}"]:checked`).length;
-        
+
         // If trying to uncheck the last checkbox, prevent it
         if (!checkbox.checked && checkedInGroup === 0) {
             checkbox.checked = true;
             return;
         }
-        
+
+        if (currentDashboardSubView === 'gradSchool') {
+            loadGradSchoolData();
+            return;
+        }
+
         // Otherwise, apply the filters
         applyFilters();
         updateFilterDisplay();
@@ -2139,7 +2551,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 this.classList.remove('text-gray-700', 'hover:bg-gray-100');
                 this.classList.add('bg-blue-600', 'text-white');
                 // Load dashboard content then switch
-                htmx.ajax('GET', 'fragments/dashboard-content.html?v=2025-02-09-header-summary', {
+                htmx.ajax('GET', 'fragments/dashboard-content.html?v=2026-07-01-acceptance-rate-fix', {
                     target: '#tab-container',
                     swap: 'innerHTML'
                 }).then(() => {
@@ -2155,7 +2567,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     // ============================================================================
     // CHART MANAGEMENT
     // ============================================================================
-    
+
     function updatePieChart(profiles) {
         const effectiveType = (p) => {
             if (p.job_type && p.job_type !== '') return p.job_type;
@@ -2173,7 +2585,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
         const canvas = document.getElementById('jobTypeChart');
         if (!canvas) return;
-        
+
         const ctx = canvas.getContext('2d');
 
         if (pieChart) {
@@ -2224,11 +2636,11 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
         });
     }
-    
+
     // ============================================================================
     // EXPORT FUNCTIONS
     // ============================================================================
-    
+
     function exportToCSV() {
         if (!gridApi) {
             showError('No data to export');
@@ -2288,7 +2700,66 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             showError('Failed to export data: ' + error.message);
         }
     }
-    
+
+    function exportGradSchoolsToCSV() {
+        if (!gradSchoolGridApi) {
+            showError('No data to export');
+            return;
+        }
+
+        try {
+            const displayedRows = [];
+            gradSchoolGridApi.forEachNodeAfterFilterAndSort(node => {
+                displayedRows.push(node.data);
+            });
+
+            if (displayedRows.length === 0) {
+                showError('No data to export');
+                return;
+            }
+
+            const headers = ['First Name', 'Last Name', 'Graduation Year', 'FT Job', 'Best Status', 'Schools Applied'];
+            const csvRows = [headers.join(',')];
+
+            displayedRows.forEach(row => {
+                const nameParts = (row.student_name || '').split(', ');
+                const lastName = nameParts[0] || '';
+                const firstName = nameParts[1] || '';
+                const schoolsApplied = (row.schools || [])
+                    .slice().sort((a, b) => a.name.localeCompare(b.name))
+                    .map(s => s.name).join(', ');
+
+                const values = [
+                    escapeCsvValue(firstName),
+                    escapeCsvValue(lastName),
+                    row.graduation_year || '',
+                    escapeCsvValue(row.ftJobStatus || ''),
+                    escapeCsvValue(row.bestStatus || ''),
+                    escapeCsvValue(schoolsApplied)
+                ];
+                csvRows.push(values.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', `graduate_school_applications_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showSuccess(`Exported ${displayedRows.length} graduate school applications to CSV`);
+        } catch (error) {
+            console.error('Error exporting graduate schools to CSV:', error);
+            showError('Failed to export data: ' + error.message);
+        }
+    }
+
     function escapeCsvValue(value) {
         if (value === null || value === undefined) return '';
         const stringValue = String(value);
@@ -2465,12 +2936,17 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         applyFilters,
         handleFilterChange,
         onGradYearChange,
+        switchDashboardSubView,
+        loadGradSchoolData,
         exportToCSV,
         downloadResumes,
         reloadSelectedRepos,
         switchTab,
         showError,
-        showSuccess
+        showSuccess,
+        openGradTopSchoolsModal,
+        closeGradTopSchoolsModal,
+        exportGradSchoolsToCSV
     };
     
     // ============================================================================
@@ -2498,7 +2974,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             }
             
             // Use HTMX to load dashboard content, then load the data
-            htmx.ajax('GET', 'fragments/dashboard-content.html?v=2025-02-09-header-summary', {
+            htmx.ajax('GET', 'fragments/dashboard-content.html?v=2026-07-01-acceptance-rate-fix', {
                 target: '#tab-container',
                 swap: 'innerHTML'
             }).then(() => {
@@ -2545,7 +3021,16 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                     console.warn('Repo grid resize error:', e);
                 }
             }
-            
+
+            // Grad school grid
+            if (gradSchoolGridApi) {
+                try {
+                    gradSchoolGridApi.sizeColumnsToFit();
+                } catch (e) {
+                    console.warn('Grad school grid resize error:', e);
+                }
+            }
+
             // Chart
             if (pieChart) {
                 try {

@@ -65,6 +65,11 @@
             font-weight: 500;
         }
 
+        /* Fixed width so Accepted/Rejected/Pending/Did Not Apply badges align in the Graduate Schools grid */
+        .status-badge-grad {
+            width: 120px;
+        }
+
         .status-have-job {
             background-color: #d1fae5;
             color: #065f46;
@@ -167,6 +172,7 @@
                                 <select id="filterGradYear" onchange="window.app.onGradYearChange()"
                                         class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
                                 </select>
+                                <div id="filterGradYearLocked" class="hidden w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"></div>
                             </div>
 
                             <div>
@@ -184,8 +190,8 @@
                                     </label>
                                 </div>
                             </div>
-                            
-                            <div>
+
+                            <div id="filterJobTypeGroup">
                                 <label class="mb-2 block text-xs font-medium text-gray-700">Job Type</label>
                                 <div class="space-y-2">
                                     <label class="flex items-center">
@@ -201,7 +207,7 @@
                                 </div>
                             </div>
 
-                            <div>
+                            <div id="filterTrackGroup">
                                 <label class="mb-2 block text-xs font-medium text-gray-700">CS Track</label>
                                 <div class="space-y-2">
                                     <label class="flex items-center">
@@ -218,6 +224,34 @@
                                         <input type="checkbox" id="filterTrack_BA" value="BA" checked onchange="window.app.handleFilterChange(this, 'filterTrack_')"
                                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
                                         <span class="ml-2 text-sm text-gray-700">BA</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="filterAcceptanceGroup" class="hidden">
+                                <label class="mb-2 block text-xs font-medium text-gray-700">Acceptance Status</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterAcceptance_Pending" value="Pending" checked onchange="window.app.handleFilterChange(this, 'filterAcceptance_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Pending</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterAcceptance_Rejected" value="Rejected" checked onchange="window.app.handleFilterChange(this, 'filterAcceptance_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Rejected</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterAcceptance_Accepted" value="Accepted" checked onchange="window.app.handleFilterChange(this, 'filterAcceptance_')"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Accepted</span>
+                                    </label>
+                                </div>
+                                <div class="mt-4">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="filterShowDidNotApply" onchange="window.app.loadGradSchoolData()"
+                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500">
+                                        <span class="ml-2 text-sm text-gray-700">Show did not apply</span>
                                     </label>
                                 </div>
                             </div>
@@ -300,8 +334,18 @@
                 </div>
                 
                 <div id="errorContainer" class="flex-1 mx-4"></div>
-                
+
                 <div class="flex items-center gap-4">
+                    <div x-show="isDashboardView" x-cloak class="hidden lg:flex items-center gap-1 rounded-full bg-gray-100 p-1">
+                        <button id="jobSearchViewBtn" onclick="window.app.switchDashboardSubView('jobSearch')"
+                                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-blue-600 text-white">
+                            Job Search
+                        </button>
+                        <button id="gradSchoolViewBtn" onclick="window.app.switchDashboardSubView('gradSchool')"
+                                class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors text-gray-600 hover:text-gray-900">
+                            Graduate Schools
+                        </button>
+                    </div>
                     <div class="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
                         <div class="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></div>
                         <span class="text-sm font-medium text-blue-900">Live</span>
@@ -377,6 +421,6 @@
     </script>
     
     <!-- Application JavaScript -->
-    <script src="js/app-htmx.js?v=2025-02-12-last-updated-right-justify"></script>
+    <script src="js/app-htmx.js?v=2026-07-01-acceptance-rate-fix"></script>
 </body>
 </html>

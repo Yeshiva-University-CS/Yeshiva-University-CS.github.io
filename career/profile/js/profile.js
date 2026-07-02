@@ -534,7 +534,6 @@
                     <option value="Pending">Pending</option>
                     <option value="Accepted">Accepted</option>
                     <option value="Rejected">Rejected</option>
-                    <option value="Registered">Registered</option>
                 </select>
             </div>
             <button type="button" onclick="window.profile.removeGraduateSchool(${id})"
@@ -546,15 +545,6 @@
 
         const statusSelect = div.querySelector('.gs-status');
         statusSelect.value = prefillStatus || 'Pending';
-
-        // Registered exclusivity: selecting Registered demotes any other Registered entry to Accepted
-        statusSelect.addEventListener('change', function () {
-            if (this.value === 'Registered') {
-                document.querySelectorAll('.graduate-school-entry .gs-status').forEach(sel => {
-                    if (sel !== this && sel.value === 'Registered') sel.value = 'Accepted';
-                });
-            }
-        });
 
         // Real-time name validation
         div.querySelector('.gs-name').addEventListener('blur', function () {
@@ -774,7 +764,6 @@
 
         // Graduate Schools
         const seenSchoolNames = [];
-        let registeredCount = 0;
         document.querySelectorAll('.graduate-school-entry').forEach((entry, index) => {
             const nameInput = entry.querySelector('.gs-name');
             const statusSelect = entry.querySelector('.gs-status');
@@ -810,13 +799,7 @@
                 statusErrorEl.classList.remove('hidden');
                 isValid = false;
             }
-
-            if (status === 'Registered') registeredCount++;
         });
-        if (registeredCount > 1) {
-            errors.push('Only one graduate school may be marked as Registered.');
-            isValid = false;
-        }
 
         return { isValid, errors };
     }
