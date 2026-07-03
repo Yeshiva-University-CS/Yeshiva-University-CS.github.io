@@ -768,6 +768,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 
                 showError('No profile data found. Please use "Refresh Data from Repos" in Settings to fetch and save profile data.');
                 showLoading(false);
+                resizeDashboardGrids();
                 return;
             }
 
@@ -841,12 +842,14 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
             console.log('Data loaded successfully!');
             showLoading(false);
+            resizeDashboardGrids();
             showSuccess(`Successfully loaded ${successCount} student profiles`);
 
         } catch (error) {
             console.error('Error loading data:', error);
             showError('Failed to load data: ' + error.message);
             showLoading(false);
+            resizeDashboardGrids();
         }
     }
     
@@ -1450,6 +1453,8 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 refreshJobSearchDashboard();
             }, 150);
         }
+
+        resizeDashboardGrids();
     }
 
     function computeFtJobStatus(seeking, jobStatus) {
@@ -1627,6 +1632,19 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         set('gradStatDidNotApply', didNotApply);
     }
 
+    function resizeGridToViewport(gridDiv) {
+        if (!gridDiv || gridDiv.offsetParent === null) return; // skip hidden (display:none) grids
+        const top = gridDiv.getBoundingClientRect().top;
+        const height = Math.max(window.innerHeight - top - 40, 300);
+        gridDiv.style.height = height + 'px';
+    }
+
+    function resizeDashboardGrids() {
+        resizeGridToViewport(document.getElementById('profileGrid'));
+        resizeGridToViewport(document.getElementById('gradSchoolGrid'));
+        resizeGridToViewport(document.getElementById('repoStatusGrid'));
+    }
+
     function initGradSchoolGrid(rowData) {
         const columnDefs = [
             {
@@ -1710,6 +1728,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         const gridDiv = document.getElementById('gradSchoolGrid');
         if (gridDiv) {
             gradSchoolGridApi = agGrid.createGrid(gridDiv, gridOptions);
+            resizeDashboardGrids();
         }
     }
 
@@ -2035,9 +2054,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         const gridDiv = document.getElementById('profileGrid');
         if (gridDiv) {
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
+            resizeDashboardGrids();
         }
     }
-    
+
     function initRepoStatusGrid(rowData) {
         console.log('📊 initRepoStatusGrid called');
         console.log('  - rowData length:', rowData.length);
@@ -2262,6 +2282,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             console.log('  - Grid div dimensions:', gridDiv.offsetWidth, 'x', gridDiv.offsetHeight);
             console.log('  - Creating AG Grid...');
             window.repoStatusGridApi = repoStatusGridApi = agGrid.createGrid(gridDiv, gridOptions);
+            resizeDashboardGrids();
             console.log('  - AG Grid created:', !!repoStatusGridApi);
             console.log('  - Updating summary...');
             updateRepoStatusSummary(rowData);
@@ -3030,6 +3051,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
+            // Re-fill available viewport height (grows/shrinks with the window)
+            resizeDashboardGrids();
+
             // Dashboard grid - refresh column defs to handle flex expansion
             if (gridApi) {
                 try {
