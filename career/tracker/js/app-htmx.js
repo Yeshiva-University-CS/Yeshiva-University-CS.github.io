@@ -154,7 +154,70 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     // ============================================================================
     // TAB SWITCHING (Enhanced for HTMX)
     // ============================================================================
-    
+
+    // Re-checks the Job Search grid against the current dashboard year/DOM and
+    // reinitializes it if needed. Called whenever the Job Search sub-view is
+    // (re)activated, since the dashboard fragment (and #profileGrid) may have
+    // been reloaded fresh while a different sub-view or year was active.
+    async function refreshJobSearchDashboard() {
+        const gridDiv = document.getElementById('profileGrid');
+        console.log('After timeout - Dashboard grid div exists:', !!gridDiv);
+        console.log('After timeout - gridApi exists:', !!gridApi);
+
+        if (gridDiv) {
+            console.log('Grid div found! Dimensions:', gridDiv.offsetWidth, 'x', gridDiv.offsetHeight);
+            console.log('Grid div innerHTML length:', gridDiv.innerHTML.length);
+
+            // Check if we have data in the database
+            if (conn) {
+                try {
+                    const result = await conn.query('SELECT COUNT(*) as count FROM profiles');
+                    const count = result.toArray()[0].count;
+                    console.log('Profiles in database:', count);
+
+                    if (count > 0) {
+                        // Check if the grid div is empty (HTMX replaced it) or if grid was never initialized
+                        const needsInit = !gridApi || gridDiv.innerHTML.trim() === '';
+
+                        if (needsInit) {
+                            console.log('🎯 Reinitializing dashboard grid NOW');
+
+                            // Destroy old grid if it exists
+                            if (gridApi) {
+                                console.log('Destroying old grid instance');
+                                try {
+                                    gridApi.destroy();
+                                } catch (e) {
+                                    console.warn('Grid destroy failed (expected if DOM was replaced):', e);
+                                }
+                                gridApi = null;
+                            }
+
+                            // Reload grid data (this will recreate the grid)
+                            await loadGridData();
+
+                            // Apply current filter state after loading data
+                            setTimeout(() => {
+                                applyFilters();
+                                console.log('✅ Dashboard grid reinitialized and filters applied');
+                            }, 100);
+                        } else {
+                            console.log('Dashboard grid already initialized and connected');
+                            // Apply current filter state to ensure filters are respected
+                            applyFilters();
+                        }
+                    } else {
+                        console.log('No profile data in database yet');
+                    }
+                } catch (error) {
+                    console.error('❌ Error checking database:', error);
+                }
+            } else {
+                console.log('Database connection not available');
+            }
+        }
+    }
+
     function switchTab(tabName, year) {
         console.log('===============================================');
         console.log('switchTab called with:', tabName, 'year:', year);
@@ -162,7 +225,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         console.log('Current repoStatusGridApi exists:', !!repoStatusGridApi);
         console.log('Current gridApi exists:', !!gridApi);
         console.log('===============================================');
-        
+
         if (tabName === 'dashboard') {
             // Store the current dashboard year if provided
             if (year) {
@@ -172,79 +235,16 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 updateDashboardTitle();
 
                 // The dashboard fragment was just reloaded fresh by renderYearTabs(),
-                // so any grad-school grid/chart references point at detached DOM nodes;
-                // re-apply whichever sub-view (Job Search or Graduate Schools) was already
-                // active instead of forcing Job Search, so filter state/sub-view survives
-                // switching between recruiting-year dashboards and other tabs.
+                // so any job-search/grad-school grid/chart references point at detached
+                // DOM nodes; re-apply whichever sub-view (Job Search or Graduate Schools)
+                // was already active instead of forcing Job Search, so filter state/sub-view
+                // survives switching between recruiting-year dashboards and other tabs.
                 gradSchoolGridApi = null;
                 gradSchoolChart = null;
+                gridApi = null;
+                pieChart = null;
                 switchDashboardSubView(currentDashboardSubView);
             }
-
-            // Wait a moment for HTMX to swap the content, then initialize grid.
-            // Only relevant when the Job Search sub-view is active — Graduate Schools
-            // already gets reloaded above via switchDashboardSubView().
-            if (currentDashboardSubView !== 'jobSearch') {
-                return;
-            }
-            setTimeout(async () => {
-                const gridDiv = document.getElementById('profileGrid');
-                console.log('After timeout - Dashboard grid div exists:', !!gridDiv);
-                console.log('After timeout - gridApi exists:', !!gridApi);
-                
-                if (gridDiv) {
-                    console.log('Grid div found! Dimensions:', gridDiv.offsetWidth, 'x', gridDiv.offsetHeight);
-                    console.log('Grid div innerHTML length:', gridDiv.innerHTML.length);
-                    
-                    // Check if we have data in the database
-                    if (conn) {
-                        try {
-                            const result = await conn.query('SELECT COUNT(*) as count FROM profiles');
-                            const count = result.toArray()[0].count;
-                            console.log('Profiles in database:', count);
-                            
-                            if (count > 0) {
-                                // Check if the grid div is empty (HTMX replaced it) or if grid was never initialized
-                                const needsInit = !gridApi || gridDiv.innerHTML.trim() === '';
-                                
-                                if (needsInit) {
-                                    console.log('🎯 Reinitializing dashboard grid NOW');
-                                    
-                                    // Destroy old grid if it exists
-                                    if (gridApi) {
-                                        console.log('Destroying old grid instance');
-                                        try {
-                                            gridApi.destroy();
-                                        } catch (e) {
-                                            console.warn('Grid destroy failed (expected if DOM was replaced):', e);
-                                        }
-                                        gridApi = null;
-                                    }
-                                    
-                                    // Reload grid data (this will recreate the grid)
-                                    await loadGridData();
-                                    
-                                    // Apply current filter state after loading data
-                                    setTimeout(() => {
-                                        applyFilters();
-                                        console.log('✅ Dashboard grid reinitialized and filters applied');
-                                    }, 100);
-                                } else {
-                                    console.log('Dashboard grid already initialized and connected');
-                                    // Apply current filter state to ensure filters are respected
-                                    applyFilters();
-                                }
-                            } else {
-                                console.log('No profile data in database yet');
-                            }
-                        } catch (error) {
-                            console.error('❌ Error checking database:', error);
-                        }
-                    } else {
-                        console.log('Database connection not available');
-                    }
-                }
-            }, 150);
         } else if (tabName === 'repoStatus') {
             // Wait a moment for HTMX to swap the content, then initialize grid
             setTimeout(() => {
@@ -768,6 +768,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 
                 showError('No profile data found. Please use "Refresh Data from Repos" in Settings to fetch and save profile data.');
                 showLoading(false);
+                resizeDashboardGrids();
                 return;
             }
 
@@ -841,12 +842,14 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
             console.log('Data loaded successfully!');
             showLoading(false);
+            resizeDashboardGrids();
             showSuccess(`Successfully loaded ${successCount} student profiles`);
 
         } catch (error) {
             console.error('Error loading data:', error);
             showError('Failed to load data: ' + error.message);
             showLoading(false);
+            resizeDashboardGrids();
         }
     }
     
@@ -1347,6 +1350,22 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         console.log('Updating filters...');
         updateFilters(profiles);
 
+        // Reveal containers before creating/measuring AG-Grid (good practice,
+        // avoids measuring a hidden container). Use display:block, not flex -
+        // #gridContainer's only child is the grid-cols-4 row, which needs
+        // normal block-level flow to stretch to 100% width; as a flex item
+        // (no flex-grow) it instead shrinks to its own content size, which is
+        // what was actually causing the narrow-card bug (confirmed via
+        // DevTools: the row's computed content width was a definite,
+        // content-derived size rather than filling its parent).
+        const statsRow = document.getElementById('statsRow');
+        const filtersRow = document.getElementById('filtersRow');
+        const gridContainer = document.getElementById('gridContainer');
+
+        if (statsRow) statsRow.style.display = 'grid';
+        if (filtersRow) filtersRow.style.display = 'flex';
+        if (gridContainer) gridContainer.style.display = 'block';
+
         console.log('Initializing grid...');
         const gridDiv = document.getElementById('profileGrid');
         const needsInit = !gridApi || (gridDiv && gridDiv.innerHTML.trim() === '');
@@ -1365,14 +1384,6 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         } else {
             gridApi.setGridOption('rowData', profiles);
         }
-
-        const statsRow = document.getElementById('statsRow');
-        const filtersRow = document.getElementById('filtersRow');
-        const gridContainer = document.getElementById('gridContainer');
-
-        if (statsRow) statsRow.style.display = 'grid';
-        if (filtersRow) filtersRow.style.display = 'flex';
-        if (gridContainer) gridContainer.style.display = 'flex';
 
         updatePieChart(profiles);
         updateFilterDisplay();
@@ -1417,8 +1428,8 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             if (filterAcceptanceGroup) filterAcceptanceGroup.classList.remove('hidden');
 
             // Wait a moment for the browser to lay out the now-visible container
-            // before ag-grid/Chart.js measure it (mirrors the Job Search tab's own
-            // setTimeout in switchTab(), avoiding stale-size grid/chart creation).
+            // before ag-grid/Chart.js measure it (mirrors the Job Search branch
+            // below, avoiding stale-size grid/chart creation).
             setTimeout(() => {
                 loadGradSchoolData();
             }, 100);
@@ -1433,7 +1444,17 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             if (filterGradYearSelect) filterGradYearSelect.classList.remove('hidden');
             if (filterGradYearLocked) filterGradYearLocked.classList.add('hidden');
             if (filterAcceptanceGroup) filterAcceptanceGroup.classList.add('hidden');
+
+            // Re-validate/reinitialize the Job Search grid on every activation,
+            // mirroring the Graduate Schools branch above — the dashboard fragment
+            // (and #profileGrid) may have been reloaded fresh while a year switch
+            // happened on the Graduate Schools sub-view, leaving gridApi stale.
+            setTimeout(() => {
+                refreshJobSearchDashboard();
+            }, 150);
         }
+
+        resizeDashboardGrids();
     }
 
     function computeFtJobStatus(seeking, jobStatus) {
@@ -1521,12 +1542,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
         const gridRows = showDidNotApply ? filteredCohort : visibleApplicants;
 
-        // Unhide the grid's container before creating it - ag-Grid measures the container's
-        // width when it initializes, and a still-hidden (display:none) ancestor measures 0.
+        // Unhide the grid's container before creating it (good practice, avoids
+        // measuring a hidden container). Use display:block, not flex - the
+        // gridContainer's only child is the grid-cols-4 row, which needs normal
+        // block-level flow to stretch to 100% width; as a flex item it would
+        // instead shrink to its own content size.
         const gradStatsRow = document.getElementById('gradStatsRow');
         const gradGridContainer = document.getElementById('gradGridContainer');
         if (gradStatsRow) gradStatsRow.style.display = 'grid';
-        if (gradGridContainer) gradGridContainer.style.display = 'flex';
+        if (gradGridContainer) gradGridContainer.style.display = 'block';
 
         const gridDiv = document.getElementById('gradSchoolGrid');
         const needsInit = !gradSchoolGridApi || (gridDiv && gridDiv.innerHTML.trim() === '');
@@ -1608,6 +1632,34 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         set('gradStatDidNotApply', didNotApply);
     }
 
+    function resizeGridToViewport(gridDiv) {
+        if (!gridDiv || gridDiv.offsetParent === null) return 0; // skip hidden (display:none) grids
+        const top = gridDiv.getBoundingClientRect().top;
+        const height = Math.max(window.innerHeight - top - 40, 300);
+        gridDiv.style.height = height + 'px';
+        return height;
+    }
+
+    function resizeChartWrapperHeight(wrapperId, gridHeight, chartInstance) {
+        if (!gridHeight) return;
+        const wrapper = document.getElementById(wrapperId);
+        if (!wrapper) return;
+        wrapper.style.height = (gridHeight / 2) + 'px';
+        if (chartInstance) {
+            try { chartInstance.resize(); } catch (e) { /* chart not ready yet */ }
+        }
+    }
+
+    function resizeDashboardGrids() {
+        const profileHeight = resizeGridToViewport(document.getElementById('profileGrid'));
+        resizeChartWrapperHeight('chartWrapper', profileHeight, pieChart);
+
+        const gradHeight = resizeGridToViewport(document.getElementById('gradSchoolGrid'));
+        resizeChartWrapperHeight('gradChartWrapper', gradHeight, gradSchoolChart);
+
+        resizeGridToViewport(document.getElementById('repoStatusGrid'));
+    }
+
     function initGradSchoolGrid(rowData) {
         const columnDefs = [
             {
@@ -1651,7 +1703,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             {
                 headerName: 'Schools Applied',
                 filter: 'agTextColumnFilter',
-                minWidth: 425,
+                minWidth: 375,
+                flex: 1,
+                suppressSizeToFit: true,
                 valueGetter: (params) => (params.data.schools || [])
                     .slice().sort((a, b) => a.name.localeCompare(b.name))
                     .map(s => s.name).join(', '),
@@ -1677,20 +1731,33 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             enableCellTextSelection: true,
             ensureDomOrder: true,
             animateRows: true,
-            // Columns must fit the container's actual width (not just their own content) -
-            // the free-text "Schools Applied" column can measure wider than the container
-            // on the tab's first render, before layout has fully settled, causing overflow.
+            // Auto-size columns to their content, except "Schools Applied" which uses
+            // flex: 1 to fill the remaining space - sizing that free-text column by
+            // content risked it measuring wider than the container and overflowing.
             onGridReady: (params) => {
-                params.api.sizeColumnsToFit();
+                const columnsToResize = params.api
+                    .getAllGridColumns()
+                    .filter(col => !col.getColDef().suppressSizeToFit)
+                    .map(col => col.getColId());
+                if (columnsToResize.length > 0) {
+                    params.api.autoSizeColumns(columnsToResize, false);
+                }
             },
             onGridSizeChanged: (params) => {
-                params.api.sizeColumnsToFit();
+                const columnsToResize = params.api
+                    .getAllGridColumns()
+                    .filter(col => !col.getColDef().suppressSizeToFit)
+                    .map(col => col.getColId());
+                if (columnsToResize.length > 0) {
+                    params.api.autoSizeColumns(columnsToResize, false);
+                }
             }
         };
 
         const gridDiv = document.getElementById('gradSchoolGrid');
         if (gridDiv) {
             gradSchoolGridApi = agGrid.createGrid(gridDiv, gridOptions);
+            resizeDashboardGrids();
         }
     }
 
@@ -2016,9 +2083,10 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         const gridDiv = document.getElementById('profileGrid');
         if (gridDiv) {
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
+            resizeDashboardGrids();
         }
     }
-    
+
     function initRepoStatusGrid(rowData) {
         console.log('📊 initRepoStatusGrid called');
         console.log('  - rowData length:', rowData.length);
@@ -2243,6 +2311,7 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             console.log('  - Grid div dimensions:', gridDiv.offsetWidth, 'x', gridDiv.offsetHeight);
             console.log('  - Creating AG Grid...');
             window.repoStatusGridApi = repoStatusGridApi = agGrid.createGrid(gridDiv, gridOptions);
+            resizeDashboardGrids();
             console.log('  - AG Grid created:', !!repoStatusGridApi);
             console.log('  - Updating summary...');
             updateRepoStatusSummary(rowData);
@@ -2550,12 +2619,22 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
                 });
                 this.classList.remove('text-gray-700', 'hover:bg-gray-100');
                 this.classList.add('bg-blue-600', 'text-white');
-                // Load dashboard content then switch
+                // Load dashboard content then switch. The dashboard-content.html fragment
+                // is already loaded in #tab-container (from the previously active dashboard
+                // year), so htmx retains DOM nodes whose id matches between old and new
+                // content and restores their attributes - including class - during its
+                // settle phase. That settle happens after the htmx.ajax() promise resolves,
+                // so switching sub-views from that .then() gets clobbered a moment later.
+                // Waiting for htmx:afterSettle ensures our class changes apply last.
+                const tabContainer = document.getElementById('tab-container');
+                const onSettle = () => {
+                    tabContainer.removeEventListener('htmx:afterSettle', onSettle);
+                    window.app.switchTab('dashboard', year);
+                };
+                tabContainer.addEventListener('htmx:afterSettle', onSettle);
                 htmx.ajax('GET', 'fragments/dashboard-content.html?v=2026-07-01-acceptance-rate-fix', {
                     target: '#tab-container',
                     swap: 'innerHTML'
-                }).then(() => {
-                    window.app.switchTab('dashboard', year);
                 });
             });
             container.appendChild(btn);
@@ -3001,6 +3080,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
+            // Re-fill available viewport height (grows/shrinks with the window)
+            resizeDashboardGrids();
+
             // Dashboard grid - refresh column defs to handle flex expansion
             if (gridApi) {
                 try {
