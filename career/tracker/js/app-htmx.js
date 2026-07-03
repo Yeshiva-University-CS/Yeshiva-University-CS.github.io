@@ -1633,15 +1633,30 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
     }
 
     function resizeGridToViewport(gridDiv) {
-        if (!gridDiv || gridDiv.offsetParent === null) return; // skip hidden (display:none) grids
+        if (!gridDiv || gridDiv.offsetParent === null) return 0; // skip hidden (display:none) grids
         const top = gridDiv.getBoundingClientRect().top;
         const height = Math.max(window.innerHeight - top - 40, 300);
         gridDiv.style.height = height + 'px';
+        return height;
+    }
+
+    function resizeChartWrapperHeight(wrapperId, gridHeight, chartInstance) {
+        if (!gridHeight) return;
+        const wrapper = document.getElementById(wrapperId);
+        if (!wrapper) return;
+        wrapper.style.height = (gridHeight / 2) + 'px';
+        if (chartInstance) {
+            try { chartInstance.resize(); } catch (e) { /* chart not ready yet */ }
+        }
     }
 
     function resizeDashboardGrids() {
-        resizeGridToViewport(document.getElementById('profileGrid'));
-        resizeGridToViewport(document.getElementById('gradSchoolGrid'));
+        const profileHeight = resizeGridToViewport(document.getElementById('profileGrid'));
+        resizeChartWrapperHeight('chartWrapper', profileHeight, pieChart);
+
+        const gradHeight = resizeGridToViewport(document.getElementById('gradSchoolGrid'));
+        resizeChartWrapperHeight('gradChartWrapper', gradHeight, gradSchoolChart);
+
         resizeGridToViewport(document.getElementById('repoStatusGrid'));
     }
 
