@@ -1703,7 +1703,9 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             {
                 headerName: 'Schools Applied',
                 filter: 'agTextColumnFilter',
-                minWidth: 425,
+                minWidth: 375,
+                flex: 1,
+                suppressSizeToFit: true,
                 valueGetter: (params) => (params.data.schools || [])
                     .slice().sort((a, b) => a.name.localeCompare(b.name))
                     .map(s => s.name).join(', '),
@@ -1729,14 +1731,26 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
             enableCellTextSelection: true,
             ensureDomOrder: true,
             animateRows: true,
-            // Columns must fit the container's actual width (not just their own content) -
-            // the free-text "Schools Applied" column can measure wider than the container
-            // on the tab's first render, before layout has fully settled, causing overflow.
+            // Auto-size columns to their content, except "Schools Applied" which uses
+            // flex: 1 to fill the remaining space - sizing that free-text column by
+            // content risked it measuring wider than the container and overflowing.
             onGridReady: (params) => {
-                params.api.sizeColumnsToFit();
+                const columnsToResize = params.api
+                    .getAllGridColumns()
+                    .filter(col => !col.getColDef().suppressSizeToFit)
+                    .map(col => col.getColId());
+                if (columnsToResize.length > 0) {
+                    params.api.autoSizeColumns(columnsToResize, false);
+                }
             },
             onGridSizeChanged: (params) => {
-                params.api.sizeColumnsToFit();
+                const columnsToResize = params.api
+                    .getAllGridColumns()
+                    .filter(col => !col.getColDef().suppressSizeToFit)
+                    .map(col => col.getColId());
+                if (columnsToResize.length > 0) {
+                    params.api.autoSizeColumns(columnsToResize, false);
+                }
             }
         };
 
