@@ -1347,6 +1347,22 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         console.log('Updating filters...');
         updateFilters(profiles);
 
+        // Reveal containers before creating/measuring AG-Grid (good practice,
+        // avoids measuring a hidden container). Use display:block, not flex -
+        // #gridContainer's only child is the grid-cols-4 row, which needs
+        // normal block-level flow to stretch to 100% width; as a flex item
+        // (no flex-grow) it instead shrinks to its own content size, which is
+        // what was actually causing the narrow-card bug (confirmed via
+        // DevTools: the row's computed content width was a definite,
+        // content-derived size rather than filling its parent).
+        const statsRow = document.getElementById('statsRow');
+        const filtersRow = document.getElementById('filtersRow');
+        const gridContainer = document.getElementById('gridContainer');
+
+        if (statsRow) statsRow.style.display = 'grid';
+        if (filtersRow) filtersRow.style.display = 'flex';
+        if (gridContainer) gridContainer.style.display = 'block';
+
         console.log('Initializing grid...');
         const gridDiv = document.getElementById('profileGrid');
         const needsInit = !gridApi || (gridDiv && gridDiv.innerHTML.trim() === '');
@@ -1365,14 +1381,6 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
         } else {
             gridApi.setGridOption('rowData', profiles);
         }
-
-        const statsRow = document.getElementById('statsRow');
-        const filtersRow = document.getElementById('filtersRow');
-        const gridContainer = document.getElementById('gridContainer');
-
-        if (statsRow) statsRow.style.display = 'grid';
-        if (filtersRow) filtersRow.style.display = 'flex';
-        if (gridContainer) gridContainer.style.display = 'flex';
 
         updatePieChart(profiles);
         updateFilterDisplay();
@@ -1529,12 +1537,15 @@ console.log('HTMX App initializing... [v2025-02-09-header-summary]');
 
         const gridRows = showDidNotApply ? filteredCohort : visibleApplicants;
 
-        // Unhide the grid's container before creating it - ag-Grid measures the container's
-        // width when it initializes, and a still-hidden (display:none) ancestor measures 0.
+        // Unhide the grid's container before creating it (good practice, avoids
+        // measuring a hidden container). Use display:block, not flex - the
+        // gridContainer's only child is the grid-cols-4 row, which needs normal
+        // block-level flow to stretch to 100% width; as a flex item it would
+        // instead shrink to its own content size.
         const gradStatsRow = document.getElementById('gradStatsRow');
         const gradGridContainer = document.getElementById('gradGridContainer');
         if (gradStatsRow) gradStatsRow.style.display = 'grid';
-        if (gradGridContainer) gradGridContainer.style.display = 'flex';
+        if (gradGridContainer) gradGridContainer.style.display = 'block';
 
         const gridDiv = document.getElementById('gradSchoolGrid');
         const needsInit = !gradSchoolGridApi || (gridDiv && gridDiv.innerHTML.trim() === '');
